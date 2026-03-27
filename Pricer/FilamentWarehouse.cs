@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Pricer.Models;
+
+using System;
 using System.Linq;
 
 // ReSharper disable once CheckNamespace
@@ -11,17 +13,10 @@ public sealed class FilamentWarehouse(IAppDataStore store, string dataFilePath)
 	private readonly string _dataFilePath = dataFilePath;
 
 	private const decimal DefaultDiameterMm = 1.75m;
-	private readonly FilamentWarehouseCliDrawer _drawer = new();
 
-	public void Menu(AppData appData)
-	{
-        _drawer.Menu(appData, this);
-	}
+	public void Menu(AppData appData) => throw new NotSupportedException("CLI is hosted in Pricer.Cli");
 
-	public FilamentMaterial? SelectMaterial(AppData appData)
-	{
-       return _drawer.SelectMaterial(appData);
-	}
+	public FilamentMaterial? SelectMaterial(AppData appData) => throw new NotSupportedException("CLI is hosted in Pricer.Cli");
 
 	public void AddSpoolPurchase(AppData appData, FilamentMaterial material, decimal totalPrice)
 	{

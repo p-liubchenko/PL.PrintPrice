@@ -61,7 +61,7 @@ public sealed class PrintTransactionsCliDrawer
 		{
 			var tx = list[i];
 			var status = tx.Status == PrintTransactionStatus.Reverted ? "REVERTED" : "OK";
-         Console.WriteLine($"{i + 1}) {tx.CreatedAt.LocalDateTime:yyyy-MM-dd HH:mm} | {status} | {tx.MaterialNameSnapshot} | {tx.FilamentKg:F3} kg | {tx.PrintHours:F2} h | {MoneyFormatter.Format(appData, tx.TotalCost)}");
+			Console.WriteLine($"{i + 1}) {tx.CreatedAt.LocalDateTime:yyyy-MM-dd HH:mm} | {status} | {tx.MaterialNameSnapshot} | {tx.FilamentKg:F3} kg | {tx.PrintHours:F2} h | {MoneyFormatter.Format(appData, tx.TotalCost)}");
 		}
 
 		Console.WriteLine();

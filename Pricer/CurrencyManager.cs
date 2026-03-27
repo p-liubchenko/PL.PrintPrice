@@ -7,9 +7,8 @@ public sealed class CurrencyManager(IAppDataStore store, string dataFilePath)
 {
 	private readonly IAppDataStore _store = store;
 	private readonly string _dataFilePath = dataFilePath;
-	private readonly CurrencyManagerCliDrawer _drawer = new();
 
-	public void Menu(AppData appData) => _drawer.Menu(appData, this);
+	public void Menu(AppData appData) => throw new NotSupportedException("CLI is hosted in Pricer.Cli");
 
 	public bool AddCurrency(AppData appData, Currency currency, out string error)
 	{

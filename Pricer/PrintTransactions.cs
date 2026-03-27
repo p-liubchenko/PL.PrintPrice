@@ -1,3 +1,5 @@
+using Pricer.Models;
+
 using System;
 using System.Linq;
 

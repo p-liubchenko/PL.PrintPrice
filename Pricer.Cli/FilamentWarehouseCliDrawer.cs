@@ -1,5 +1,6 @@
+using Pricer.Models;
+
 using System;
-using Pricer.Enums;
 
 namespace Pricer;
 
@@ -78,8 +79,8 @@ public sealed class FilamentWarehouseCliDrawer
 			Console.WriteLine($"   Type: {m.Type}");
 			Console.WriteLine($"   Grade: {m.Grade}");
 			Console.WriteLine($"   Stock: {m.AmountKg:F3} kg | ~{m.EstimatedLengthMeters:F1} m");
-            Console.WriteLine($"   Avg price: {MoneyFormatter.FormatPerKg(appData, m.AveragePricePerKg)}");
-			Console.WriteLine($"   Value: {MoneyFormatter.Format(appData, (m.AmountKg * m.AveragePricePerKg))}");
+			Console.WriteLine($"   Avg price: {MoneyFormatter.FormatPerKg(appData, m.AveragePricePerKgMoney.ToBase(appData))}");
+			Console.WriteLine($"   Value: {MoneyFormatter.Format(appData, (m.AmountKg * m.AveragePricePerKgMoney.ToBase(appData)))}");
 			Console.WriteLine();
 		}
 
@@ -95,7 +96,7 @@ public sealed class FilamentWarehouseCliDrawer
 
 		var material = new FilamentMaterial
 		{
-           Id = Guid.NewGuid(),
+			Id = Guid.NewGuid(),
 			Name = ConsoleEx.ReadRequiredString("Name / label (example: Bambu PLA Basic Green)"),
 			Color = ConsoleEx.ReadRequiredString("Color"),
 			Type = type,
@@ -108,10 +109,10 @@ public sealed class FilamentWarehouseCliDrawer
 		Console.WriteLine($"Suggested length for {material.AmountKg:F3} kg ({material.Type}): ~{suggestedLength:F1} m");
 		material.EstimatedLengthMeters = ConsoleEx.ReadDecimal($"Estimated length in meters (Enter to accept {suggestedLength:F1})", min: 0, defaultValue: suggestedLength);
 
-		var totalPrice = ConsoleEx.ReadDecimal("Total purchase price in CZK", min: 0);
+		var totalPrice = ConsoleEx.ReadDecimal($"Total purchase price in {appData.GetOperatingCurrency()?.Code ?? "(base)"}", min: 0);
 		warehouse.AddSpoolPurchase(appData, material, totalPrice);
 
-		ConsoleEx.ShowMessage($"Material added. Average price: {material.AveragePricePerKg:F2} CZK/kg");
+		ConsoleEx.ShowMessage($"Material added. Average price: {MoneyFormatter.FormatPerKg(appData, material.AveragePricePerKgMoney.ToBase(appData))}");
 	}
 
 	private static void RestockExistingMaterial(AppData appData, FilamentWarehouse warehouse)
@@ -128,17 +129,17 @@ public sealed class FilamentWarehouseCliDrawer
 		Console.WriteLine();
 		Console.WriteLine($"Selected: {material.Name}");
 		Console.WriteLine($"Current stock: {material.AmountKg:F3} kg | ~{material.EstimatedLengthMeters:F1} m");
-		Console.WriteLine($"Current average: {material.AveragePricePerKg:F2} CZK/kg");
+		Console.WriteLine($"Current average: {MoneyFormatter.FormatPerKg(appData, material.AveragePricePerKgMoney.ToBase(appData))}");
 		Console.WriteLine();
 
 		var addKg = ConsoleEx.ReadDecimal("Added amount in kg", min: 0.001m);
 		var suggestedMeters = FilamentWarehouse.SuggestLengthMeters(addKg, material.Type);
 		Console.WriteLine($"Suggested added length for {addKg:F3} kg ({material.Type}): ~{suggestedMeters:F1} m");
 		var addMeters = ConsoleEx.ReadDecimal($"Added estimated length in meters (Enter to accept {suggestedMeters:F1})", min: 0, defaultValue: suggestedMeters);
-		var addTotalPrice = ConsoleEx.ReadDecimal("Added purchase price in CZK", min: 0);
+		var addTotalPrice = ConsoleEx.ReadDecimal($"Added purchase price in {appData.GetOperatingCurrency()?.Code ?? "(base)"}", min: 0);
 
 		warehouse.RestockExistingMaterial(appData, material, addKg, addMeters, addTotalPrice);
-		ConsoleEx.ShowMessage($"Material restocked. New average: {material.AveragePricePerKg:F2} CZK/kg");
+		ConsoleEx.ShowMessage($"Material restocked. New average: {MoneyFormatter.FormatPerKg(appData, material.AveragePricePerKgMoney.ToBase(appData))}");
 	}
 
 	private static void ConsumeMaterialManually(AppData appData, FilamentWarehouse warehouse)
@@ -192,14 +193,14 @@ public sealed class FilamentWarehouseCliDrawer
 		for (int i = 0; i < appData.Materials.Count; i++)
 		{
 			var m = appData.Materials[i];
-			Console.WriteLine($"{i + 1}) {m.Name} | {m.Color} | {m.Type} | {m.AmountKg:F3} kg | {m.AveragePricePerKg:F2} CZK/kg");
+			Console.WriteLine($"{i + 1}) {m.Name} | {m.Color} | {m.Type} | {m.AmountKg:F3} kg | {MoneyFormatter.FormatPerKg(appData, m.AveragePricePerKgMoney.ToBase(appData))}");
 		}
 	}
 
-  private static Pricer.Enums.FilamentType ReadFilamentType()
+	private static Enums.FilamentType ReadFilamentType()
 	{
 		Console.WriteLine("Select filament type:");
-        var values = Enum.GetValues<Pricer.Enums.FilamentType>();
+		var values = Enum.GetValues<Enums.FilamentType>();
 		for (int i = 0; i < values.Length; i++)
 		{
 			Console.WriteLine($"{i + 1}) {values[i]}");

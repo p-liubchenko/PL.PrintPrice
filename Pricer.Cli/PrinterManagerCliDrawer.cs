@@ -1,5 +1,6 @@
+using Pricer.Models;
+
 using System;
-using System.Linq;
 
 namespace Pricer;
 
@@ -20,7 +21,7 @@ public sealed class PrinterManagerCliDrawer
 				if (selected is not null)
 				{
 					Console.WriteLine($"  Avg power: {selected.AveragePowerWatts:F0} W");
-					Console.WriteLine($"  Hourly cost: {selected.HourlyCost:F2} CZK/h");
+					Console.WriteLine($"  Hourly cost: {MoneyFormatter.FormatPerHour(store, selected.HourlyCostMoney.ToBase(store))}");
 				}
 			}
 			else
@@ -76,7 +77,7 @@ public sealed class PrinterManagerCliDrawer
 		{
 			var p = store.Printers[i];
 			var selectedMark = p.Id == selectedId ? "*" : " ";
-           Console.WriteLine($"{selectedMark}{i + 1}) {p.Name} | {p.AveragePowerWatts:F0} W | {MoneyFormatter.FormatPerHour(store, p.HourlyCost)}");
+			Console.WriteLine($"{selectedMark}{i + 1}) {p.Name} | {p.AveragePowerWatts:F0} W | {MoneyFormatter.FormatPerHour(store, p.HourlyCostMoney.ToBase(store))}");
 		}
 
 		ConsoleEx.Pause();
@@ -92,7 +93,7 @@ public sealed class PrinterManagerCliDrawer
 			Id = Guid.NewGuid(),
 			Name = ConsoleEx.ReadRequiredString("Printer name"),
 			AveragePowerWatts = ConsoleEx.ReadDecimal("Average power draw (W)", min: 0),
-			HourlyCost = ConsoleEx.ReadDecimal("Hourly overhead cost (CZK/h)", min: 0)
+			HourlyCost = ConsoleEx.ReadDecimal($"Hourly overhead cost ({store.GetOperatingCurrency()?.Code ?? "(base)"}/h)", min: 0)
 		};
 
 		manager.AddPrinter(store, printer);
@@ -116,9 +117,9 @@ public sealed class PrinterManagerCliDrawer
 		}
 
 		var index = ConsoleEx.ReadInt("Select printer number", 1, store.Printers.Count) - 1;
-       if (!manager.SelectPrinter(store, index))
+		if (!manager.SelectPrinter(store, index, out var error))
 		{
-			ConsoleEx.ShowMessage("Invalid selection.");
+			ConsoleEx.ShowMessage(error);
 			return;
 		}
 
@@ -142,10 +143,10 @@ public sealed class PrinterManagerCliDrawer
 		}
 
 		var index = ConsoleEx.ReadInt("Enter printer number to remove", 1, store.Printers.Count) - 1;
-       var removed = store.Printers[index].Name;
-		if (!manager.RemovePrinter(store, index))
+		var removed = store.Printers[index].Name;
+		if (!manager.RemovePrinter(store, index, out var error))
 		{
-			ConsoleEx.ShowMessage("Invalid selection.");
+			ConsoleEx.ShowMessage(error);
 			return;
 		}
 

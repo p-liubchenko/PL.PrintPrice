@@ -1,3 +1,5 @@
+using Pricer.Models;
+
 using System;
 using System.Linq;
 
@@ -7,9 +9,8 @@ public sealed class PrinterManager(IAppDataStore store, string dataFilePath)
 {
 	private readonly IAppDataStore _store = store;
 	private readonly string _dataFilePath = dataFilePath;
-	private readonly PrinterManagerCliDrawer _drawer = new();
 
-	public void Menu(AppData appData) => _drawer.Menu(appData, this);
+	public void Menu(AppData appData) => throw new NotSupportedException("CLI is hosted in Pricer.Cli");
 
 	public void AddPrinter(AppData appData, Printer printer)
 	{
@@ -23,10 +24,12 @@ public sealed class PrinterManager(IAppDataStore store, string dataFilePath)
 		_store.Save(_dataFilePath, appData);
 	}
 
-	public bool SelectPrinter(AppData appData, int index)
+   public bool SelectPrinter(AppData appData, int index, out string error)
 	{
+       error = string.Empty;
 		if (index < 0 || index >= appData.Printers.Count)
 		{
+           error = "Invalid selection.";
 			return false;
 		}
 
@@ -35,10 +38,12 @@ public sealed class PrinterManager(IAppDataStore store, string dataFilePath)
 		return true;
 	}
 
-	public bool RemovePrinter(AppData appData, int index)
+   public bool RemovePrinter(AppData appData, int index, out string error)
 	{
+       error = string.Empty;
 		if (index < 0 || index >= appData.Printers.Count)
 		{
+           error = "Invalid selection.";
 			return false;
 		}
 

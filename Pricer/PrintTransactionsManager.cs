@@ -7,9 +7,8 @@ public sealed class PrintTransactionsManager(IAppDataStore store, string dataFil
 {
 	private readonly IAppDataStore _store = store;
 	private readonly string _dataFilePath = dataFilePath;
-	private readonly PrintTransactionsCliDrawer _drawer = new();
 
-	public void Menu(AppData appData) => _drawer.Menu(appData, this);
+	public void Menu(AppData appData) => throw new NotSupportedException("CLI is hosted in Pricer.Cli");
 
 	public void RecordCompletedPrint(AppData appData, PrintCostRequest request, PrintCostResult result)
 	{
