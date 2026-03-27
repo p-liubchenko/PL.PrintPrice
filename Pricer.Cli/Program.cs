@@ -32,6 +32,7 @@ internal static class Program
 
 		var provider = services.BuildServiceProvider();
 		provider.ApplyPendingMigrations();
+		await provider.MigrateDataIfNeededAsync(configuration);
 
 		using var scope = provider.CreateScope();
 		var sp = scope.ServiceProvider;
