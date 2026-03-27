@@ -1,20 +1,27 @@
+using Pricer.Models;
 using Pricer.Models.Transactions;
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Pricer;
 
-public sealed class PrintTransactionsCliDrawer
+public sealed class PrintTransactionsCliDrawer(
+	ITransactionsService transactionsService,
+	IMaterialsService materialsService,
+	ICurrenciesService currenciesService,
+	ISettingsService settingsService)
 {
-	public void Menu(AppData appData, PrintTransactionsManager manager)
+	public void Menu()
 	{
 		while (true)
 		{
+			var printTxs = transactionsService.GetPrintTransactionsAsync().GetAwaiter().GetResult();
+
 			Console.Clear();
 			ConsoleEx.PrintHeader("Print History / Transactions");
-
-			Console.WriteLine($"Transactions: {appData.PrintTransactions.Count}");
+			Console.WriteLine($"Transactions: {printTxs.Count}");
 			Console.WriteLine();
 			ConsoleEx.DrawMenuItem("1) List transactions");
 			ConsoleEx.DrawMenuItem("2) Revert transaction");
@@ -24,41 +31,37 @@ public sealed class PrintTransactionsCliDrawer
 
 			switch (ConsoleEx.ReadMenuChoice("Choose an option"))
 			{
-				case "1":
-					ListAll(appData);
-					break;
-				case "2":
-					Revert(appData, manager);
-					break;
-				case "3":
-					Delete(appData, manager);
-					break;
-				case "0":
-					return;
-				default:
-					ConsoleEx.ShowMessage("Unknown option.");
-					break;
+				case "1": ListAll(); break;
+				case "2": Revert(printTxs); break;
+				case "3": Delete(printTxs); break;
+				case "0": return;
+				default: ConsoleEx.ShowMessage("Unknown option."); break;
 			}
 		}
 	}
 
-	private static void ListAll(AppData appData)
+	private void ListAll()
 	{
+		var printTxs = transactionsService.GetPrintTransactionsAsync().GetAwaiter().GetResult();
+		var stockTxs = transactionsService.GetStockTransactionsAsync().GetAwaiter().GetResult();
+		var materials = materialsService.GetAllAsync().GetAwaiter().GetResult();
+		var (currencies, settings, operatingCurrency) = LoadContext();
+
 		Console.Clear();
 		ConsoleEx.PrintHeader("Transactions");
 
-		if (!appData.PrintTransactions.Any() && !appData.StockTransactions.Any())
+		if (!printTxs.Any() && !stockTxs.Any())
 		{
 			Console.WriteLine("No transactions recorded.");
 			ConsoleEx.Pause();
 			return;
 		}
 
-		var printTx = appData.PrintTransactions.Select(tx => BuildPrintLine(appData, tx));
-		var stockTx = appData.StockTransactions.Select(tx => BuildStockLine(appData, tx));
+		var printLines = printTxs.Select(tx => BuildPrintLine(tx, currencies, operatingCurrency, materials));
+		var stockLines = stockTxs.Select(tx => BuildStockLine(tx, currencies, operatingCurrency, materials));
 
-		var merged = printTx
-			.Concat(stockTx)
+		var merged = printLines
+			.Concat(stockLines)
 			.OrderByDescending(x => x.CreatedAt)
 			.Take(50)
 			.ToList();
@@ -76,9 +79,7 @@ public sealed class PrintTransactionsCliDrawer
 	private static void RenderMergedLine(int index, TransactionLine line)
 	{
 		Console.Write($"{index}) {line.Prefix} | ");
-
-		var kgColor = line.KgSeverity;
-		ConsoleEx.WriteInline(line.KgText.PadLeft(9), kgColor);
+		ConsoleEx.WriteInline(line.KgText.PadLeft(9), line.KgSeverity);
 		Console.Write(" | ");
 		Console.Write(line.Tail);
 		Console.Write(" | ");
@@ -95,12 +96,12 @@ public sealed class PrintTransactionsCliDrawer
 		string MoneyText,
 		ConsoleEx.Severity MoneySeverity);
 
-	private static TransactionLine BuildPrintLine(AppData appData, PrintTransaction tx)
+	private static TransactionLine BuildPrintLine(PrintTransaction tx, List<Currency> currencies, Currency? operatingCurrency, List<FilamentMaterial> materials)
 	{
 		var status = tx.Status == PrintTransactionStatus.Reverted ? "REVERTED" : "OK";
-		var totalBase = tx.TotalCost?.ToBase(appData) ?? 0;
-		var moneyText = MoneyFormatter.Format(appData, totalBase);
-		var materialDisplay = GetMaterialDisplayName(appData, tx.MaterialId, tx.MaterialNameSnapshot);
+		var totalBase = tx.TotalCost?.ToBase(currencies) ?? 0;
+		var moneyText = MoneyFormatter.Format(operatingCurrency, totalBase);
+		var materialDisplay = GetMaterialDisplayName(materials, tx.MaterialId, tx.MaterialNameSnapshot);
 
 		return new TransactionLine(
 			CreatedAt: tx.CreatedAt,
@@ -112,12 +113,11 @@ public sealed class PrintTransactionsCliDrawer
 			MoneySeverity: ConsoleEx.Severity.Unsafe);
 	}
 
-	private static TransactionLine BuildStockLine(AppData appData, StockTransaction tx)
+	private static TransactionLine BuildStockLine(StockTransaction tx, List<Currency> currencies, Currency? operatingCurrency, List<FilamentMaterial> materials)
 	{
-		var costBase = tx.TotalCost?.ToBase(appData) ?? 0
-			;
-		var moneyText = MoneyFormatter.Format(appData, costBase);
-		var materialDisplay = GetMaterialDisplayName(appData, tx.MaterialId, tx.MaterialNameSnapshot);
+		var costBase = tx.TotalCost?.ToBase(currencies) ?? 0;
+		var moneyText = MoneyFormatter.Format(operatingCurrency, costBase);
+		var materialDisplay = GetMaterialDisplayName(materials, tx.MaterialId, tx.MaterialNameSnapshot);
 		var signKg = tx.KgDelta >= 0 ? "+" : "";
 		var signM = tx.MetersDelta >= 0 ? "+" : "";
 		var kgSeverity = tx.KgDelta >= 0 ? ConsoleEx.Severity.Safe : ConsoleEx.Severity.Critical;
@@ -127,7 +127,7 @@ public sealed class PrintTransactionsCliDrawer
 
 		return new TransactionLine(
 			CreatedAt: tx.CreatedAt,
-		   Prefix: $"{tx.CreatedAt.LocalDateTime:yyyy-MM-dd HH:mm} | STOCK | {tx.Type} | {materialDisplay}",
+			Prefix: $"{tx.CreatedAt.LocalDateTime:yyyy-MM-dd HH:mm} | STOCK | {tx.Type} | {materialDisplay}",
 			KgText: $"{signKg}{tx.KgDelta:F3} kg",
 			KgSeverity: kgSeverity,
 			Tail: $"{signM}{tx.MetersDelta:F1} m",
@@ -135,29 +135,25 @@ public sealed class PrintTransactionsCliDrawer
 			MoneySeverity: moneySeverity);
 	}
 
-	private static string GetMaterialDisplayName(AppData appData, Guid materialId, string fallback)
+	private static string GetMaterialDisplayName(List<FilamentMaterial> materials, Guid materialId, string fallback)
 	{
-		var material = appData.Materials.FirstOrDefault(m => m.Id == materialId);
-		if (material is null)
-		{
-			return fallback;
-		}
-
+		var material = materials.FirstOrDefault(m => m.Id == materialId);
+		if (material is null) return fallback;
 		return string.IsNullOrWhiteSpace(material.Color) ? material.Name : $"{material.Name} ({material.Color})";
 	}
 
-	private static void Revert(AppData appData, PrintTransactionsManager manager)
+	private void Revert(List<PrintTransaction> printTxs)
 	{
 		Console.Clear();
 		ConsoleEx.PrintHeader("Revert Transaction");
 
-		if (!appData.PrintTransactions.Any())
+		if (!printTxs.Any())
 		{
 			ConsoleEx.ShowMessage("No transactions to revert.");
 			return;
 		}
 
-		var list = appData.PrintTransactions.OrderByDescending(x => x.CreatedAt).ToList();
+		var list = printTxs.OrderByDescending(x => x.CreatedAt).ToList();
 		for (int i = 0; i < list.Count; i++)
 		{
 			Console.WriteLine($"{i + 1}) {list[i].CreatedAt.LocalDateTime:yyyy-MM-dd HH:mm} | {list[i].Status} | {list[i].MaterialNameSnapshot}");
@@ -165,30 +161,26 @@ public sealed class PrintTransactionsCliDrawer
 
 		var index = ConsoleEx.ReadInt("Select transaction", 1, list.Count) - 1;
 		var tx = list[index];
-		ConsoleEx.RequestConfirmation("Revert this transaction and restore stock?", ConsoleEx.Severity.Unsafe, () =>
-		   {
-			   if (!manager.TryRevert(appData, tx.Id, out var error))
-			   {
-				   ConsoleEx.ShowMessage(error, ConsoleEx.Severity.Unsafe);
-				   return;
-			   }
 
-			   ConsoleEx.ShowMessage("Transaction reverted (stock restored).", ConsoleEx.Severity.Unsafe);
-		   });
+		ConsoleEx.RequestConfirmation("Revert this transaction and restore stock?", ConsoleEx.Severity.Unsafe, () =>
+		{
+			var (success, error) = transactionsService.RevertPrintAsync(tx.Id).GetAwaiter().GetResult();
+			ConsoleEx.ShowMessage(success ? "Transaction reverted (stock restored)." : error, ConsoleEx.Severity.Unsafe);
+		});
 	}
 
-	private static void Delete(AppData appData, PrintTransactionsManager manager)
+	private void Delete(List<PrintTransaction> printTxs)
 	{
 		Console.Clear();
 		ConsoleEx.PrintHeader("Delete Transaction");
 
-		if (!appData.PrintTransactions.Any())
+		if (!printTxs.Any())
 		{
 			ConsoleEx.ShowMessage("No transactions to delete.");
 			return;
 		}
 
-		var list = appData.PrintTransactions.OrderByDescending(x => x.CreatedAt).ToList();
+		var list = printTxs.OrderByDescending(x => x.CreatedAt).ToList();
 		for (int i = 0; i < list.Count; i++)
 		{
 			Console.WriteLine($"{i + 1}) {list[i].CreatedAt.LocalDateTime:yyyy-MM-dd HH:mm} | {list[i].Status} | {list[i].MaterialNameSnapshot}");
@@ -196,15 +188,19 @@ public sealed class PrintTransactionsCliDrawer
 
 		var index = ConsoleEx.ReadInt("Select transaction", 1, list.Count) - 1;
 		var tx = list[index];
-		ConsoleEx.RequestConfirmation("Delete this transaction?", ConsoleEx.Severity.Critical, () =>
-		   {
-			   if (!manager.TryDelete(appData, tx.Id, out var error))
-			   {
-				   ConsoleEx.ShowMessage(error, ConsoleEx.Severity.Critical);
-				   return;
-			   }
 
-			   ConsoleEx.ShowMessage("Transaction deleted.", ConsoleEx.Severity.Critical);
-		   });
+		ConsoleEx.RequestConfirmation("Delete this transaction?", ConsoleEx.Severity.Critical, () =>
+		{
+			var (success, error) = transactionsService.DeletePrintAsync(tx.Id).GetAwaiter().GetResult();
+			ConsoleEx.ShowMessage(success ? "Transaction deleted." : error, ConsoleEx.Severity.Critical);
+		});
+	}
+
+	private (List<Currency> currencies, AppSettings settings, Currency? operatingCurrency) LoadContext()
+	{
+		var currencies = currenciesService.GetAllAsync().GetAwaiter().GetResult();
+		var settings = settingsService.GetAsync().GetAwaiter().GetResult() ?? new AppSettings();
+		var operatingCurrency = currencies.FirstOrDefault(c => c.Id == settings.OperatingCurrencyId);
+		return (currencies, settings, operatingCurrency);
 	}
 }

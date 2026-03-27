@@ -60,11 +60,12 @@ public static class PrintCostCalculator
 			return false;
 		}
 
-     var materialCost = kg * request.Material.AveragePricePerKgMoney.ToBase(store);
+		var currencies = store.Currencies;
+		var materialCost = kg * request.Material.AveragePricePerKgMoney.ToBase(currencies);
 		var electricityKwh = (printer.AveragePowerWatts / 1000m) * request.PrintHours;
-       var electricityCost = electricityKwh * store.Settings.ElectricityPricePerKwhMoney.ToBase(store);
-		var printerWearCost = request.PrintHours * printer.HourlyCostMoney.ToBase(store);
-		var fixedCost = store.Settings.FixedCostPerPrintMoney.ToBase(store);
+		var electricityCost = electricityKwh * store.Settings.ElectricityPricePerKwhMoney.ToBase(currencies);
+		var printerWearCost = request.PrintHours * printer.HourlyCostMoney.ToBase(currencies);
+		var fixedCost = store.Settings.FixedCostPerPrintMoney.ToBase(currencies);
 		var total = materialCost + electricityCost + printerWearCost + fixedCost + request.ExtraFixedCost;
 
 		decimal estimatedMetersUsed = 0;

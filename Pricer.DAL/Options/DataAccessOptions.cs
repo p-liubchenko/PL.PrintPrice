@@ -6,4 +6,5 @@ public sealed class DataAccessOptions
 
 	public DataAccessMode Mode { get; set; } = DataAccessMode.File;
 	public string? ConnectionString { get; set; }
+	public string? FilePath { get; set; }
 }

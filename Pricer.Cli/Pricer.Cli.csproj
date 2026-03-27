@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Pricer\Pricer.csproj" />
+    <ProjectReference Include="..\Pricer.Application\Pricer.Application.csproj" />
     <ProjectReference Include="..\Pricer.DAL\Pricer.DAL.csproj" />
   </ItemGroup>
 

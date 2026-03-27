@@ -1,68 +1,28 @@
-using Pricer.Enums;
 using Pricer.Models;
 using Pricer.Models.Transactions;
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Text.Json;
 
 namespace Pricer;
 
 public sealed class AppData
 {
-	public List<FilamentMaterial> Materials { get; set; } = new();
-	public List<Printer> Printers { get; set; } = new();
-	public List<PrintTransaction> PrintTransactions { get; set; } = new();
- public List<StockTransaction> StockTransactions { get; set; } = new();
-	public List<Currency> Currencies { get; set; } = new();
+	public List<FilamentMaterial> Materials { get; set; } = [];
+	public List<Printer> Printers { get; set; } = [];
+	public List<PrintTransaction> PrintTransactions { get; set; } = [];
+	public List<StockTransaction> StockTransactions { get; set; } = [];
+	public List<Currency> Currencies { get; set; } = [];
+	/// <summary>Legacy top-level field kept for backward-compat when reading old data.json files.</summary>
 	public Guid? SelectedPrinterId { get; set; }
+	/// <summary>Legacy top-level field kept for backward-compat when reading old data.json files.</summary>
 	public Guid? OperatingCurrencyId { get; set; }
 	public AppSettings Settings { get; set; } = new();
 
 	public Printer? GetSelectedPrinter()
-        => SelectedPrinterId is null ? null : Printers.FirstOrDefault(x => x.Id == SelectedPrinterId.Value);
-}
-
-public static class DataStore
-{
-	public static AppData Load(string filePath)
 	{
-		try
-		{
-			if (!File.Exists(filePath))
-			{
-				return new AppData();
-			}
-
-			var json = File.ReadAllText(filePath);
-			if (string.IsNullOrWhiteSpace(json))
-			{
-				return new AppData();
-			}
-
-			var data = JsonSerializer.Deserialize<AppData>(json, ProgramJson.Options);
-			return data ?? new AppData();
-		}
-		catch(Exception ex)
-		{
-			return new AppData();
-		}
+		var id = Settings?.SelectedPrinterId ?? SelectedPrinterId;
+		return id is null ? null : Printers.FirstOrDefault(x => x.Id == id.Value);
 	}
-
-	public static void Save(string filePath, AppData data)
-	{
-		var json = JsonSerializer.Serialize(data, ProgramJson.Options);
-		File.WriteAllText(filePath, json);
-	}
-}
-
-public static class ProgramJson
-{
-	public static JsonSerializerOptions Options { get; } = new()
-	{
-		WriteIndented = true,
-		PropertyNameCaseInsensitive = true
-	};
 }

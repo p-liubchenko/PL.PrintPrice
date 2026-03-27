@@ -1,5 +1,8 @@
 using Pricer.Models;
 
+using System;
+using System.Linq;
+
 namespace Pricer;
 
 public sealed class AppCli(
@@ -8,22 +11,12 @@ public sealed class AppCli(
 	CurrencyManagerCliDrawer currencyManagerDrawer,
 	PrintTransactionsCliDrawer printTransactionsDrawer,
 	PrintCostCalculatorCliDrawer printCostDrawer,
-	FilamentWarehouse filamentWarehouse,
-	PrinterManager printerManager,
-	CurrencyManager currencyManager,
-	PrintTransactionsManager printTransactionsManager)
+	ISettingsService settingsService,
+	ICurrenciesService currenciesService,
+	IPrintersService printersService,
+	IMaterialsService materialsService)
 {
-	private readonly FilamentWarehouseCliDrawer _filamentWarehouseDrawer = filamentWarehouseDrawer;
-	private readonly PrinterManagerCliDrawer _printerManagerDrawer = printerManagerDrawer;
-	private readonly CurrencyManagerCliDrawer _currencyManagerDrawer = currencyManagerDrawer;
-	private readonly PrintTransactionsCliDrawer _printTransactionsDrawer = printTransactionsDrawer;
-	private readonly PrintCostCalculatorCliDrawer _printCostDrawer = printCostDrawer;
-	private readonly FilamentWarehouse _filamentWarehouse = filamentWarehouse;
-	private readonly PrinterManager _printerManager = printerManager;
-	private readonly CurrencyManager _currencyManager = currencyManager;
-	private readonly PrintTransactionsManager _printTransactionsManager = printTransactionsManager;
-
-	public void Run(AppData store, string dataFilePath)
+	public void Run()
 	{
 		Console.OutputEncoding = System.Text.Encoding.UTF8;
 
@@ -43,38 +36,20 @@ public sealed class AppCli(
 
 			switch (ConsoleEx.ReadMenuChoice("Choose an option"))
 			{
-				case "1":
-					_filamentWarehouseDrawer.Menu(store, _filamentWarehouse);
-					break;
-				case "2":
-					PrintCostMenu(store, dataFilePath);
-					break;
-				case "3":
-					_printerManagerDrawer.Menu(store, _printerManager);
-					break;
-				case "4":
-					_currencyManagerDrawer.Menu(store, _currencyManager);
-					break;
-				case "5":
-					ExpenseSettingsMenu(store, dataFilePath);
-					break;
-				case "6":
-					_printTransactionsDrawer.Menu(store, _printTransactionsManager);
-					break;
-				case "7":
-					ReportsMenu(store);
-					break;
-				case "0":
-					DataStore.Save(dataFilePath, store);
-					return;
-				default:
-					ConsoleEx.ShowMessage("Unknown option.");
-					break;
+				case "1": filamentWarehouseDrawer.Menu(); break;
+				case "2": PrintCostMenu(); break;
+				case "3": printerManagerDrawer.Menu(); break;
+				case "4": currencyManagerDrawer.Menu(); break;
+				case "5": ExpenseSettingsMenu(); break;
+				case "6": printTransactionsDrawer.Menu(); break;
+				case "7": ReportsMenu(); break;
+				case "0": return;
+				default: ConsoleEx.ShowMessage("Unknown option."); break;
 			}
 		}
 	}
 
-	private void PrintCostMenu(AppData store, string dataFilePath)
+	private void PrintCostMenu()
 	{
 		while (true)
 		{
@@ -87,42 +62,32 @@ public sealed class AppCli(
 
 			switch (ConsoleEx.ReadMenuChoice("Choose an option"))
 			{
-				case "1":
-					_printCostDrawer.Run(store, _filamentWarehouse, deductStock: false, dataFilePath, selectMaterial: _filamentWarehouseDrawer.SelectMaterial);
-					break;
-				case "2":
-					_printCostDrawer.Run(
-						store,
-						_filamentWarehouse,
-						deductStock: true,
-						dataFilePath,
-						selectMaterial: _filamentWarehouseDrawer.SelectMaterial,
-						onDeducted: (req, res) => _printTransactionsManager.RecordCompletedPrint(store, req, res));
-					break;
-				case "0":
-					DataStore.Save(dataFilePath, store);
-					return;
-				default:
-					ConsoleEx.ShowMessage("Unknown option.");
-					break;
+				case "1": printCostDrawer.Run(deductStock: false); break;
+				case "2": printCostDrawer.Run(deductStock: true); break;
+				case "0": return;
+				default: ConsoleEx.ShowMessage("Unknown option."); break;
 			}
 		}
 	}
 
-	private static void ExpenseSettingsMenu(AppData store, string dataFilePath)
+	private void ExpenseSettingsMenu()
 	{
 		while (true)
 		{
+			var currencies = currenciesService.GetAllAsync().GetAwaiter().GetResult();
+			var settings = settingsService.GetAsync().GetAwaiter().GetResult() ?? new AppSettings();
+			var operatingCurrency = currencies.FirstOrDefault(c => c.Id == settings.OperatingCurrencyId);
+			var printers = printersService.GetAllAsync().GetAwaiter().GetResult();
+			var selectedPrinter = printers.FirstOrDefault(p => p.Id == settings.SelectedPrinterId);
+
 			Console.Clear();
 			ConsoleEx.PrintHeader("Expense Settings");
-			Console.WriteLine($"Current electricity price: {MoneyFormatter.FormatPerKwh(store, store.Settings.ElectricityPricePerKwhMoney.ToBase(store))}");
-			var selected = store.GetSelectedPrinter();
-			Console.WriteLine($"Current selected printer: {(selected is null ? "(none)" : selected.Name)}");
-			Console.WriteLine($"Current misc fixed cost per print: {MoneyFormatter.Format(store, store.Settings.FixedCostPerPrintMoney.ToBase(store))}");
+			Console.WriteLine($"Current electricity price: {MoneyFormatter.FormatPerKwh(operatingCurrency, settings.ElectricityPricePerKwhMoney.ToBase(currencies))}");
+			Console.WriteLine($"Current selected printer: {(selectedPrinter is null ? "(none)" : selectedPrinter.Name)}");
+			Console.WriteLine($"Current misc fixed cost per print: {MoneyFormatter.Format(operatingCurrency, settings.FixedCostPerPrintMoney.ToBase(currencies))}");
 			Console.WriteLine();
 			Console.WriteLine("1) Set electricity price per kWh");
 			Console.WriteLine("2) Set fixed cost per print");
-			Console.WriteLine("4) Set fixed cost per print");
 			Console.WriteLine("0) Back");
 			Console.WriteLine();
 
@@ -130,65 +95,60 @@ public sealed class AppCli(
 			{
 				case "1":
 				{
-					var value = ConsoleEx.ReadDecimal($"Electricity price in {store.GetOperatingCurrency()?.Code ?? "(base)"}/kWh", min: 0);
-					store.Settings.ElectricityPricePerKwhMoney = new Money(value, store.OperatingCurrencyId);
-					DataStore.Save(dataFilePath, store);
+					var value = ConsoleEx.ReadDecimal($"Electricity price in {operatingCurrency?.Code ?? "(base)"}/kWh", min: 0);
+					settings.ElectricityPricePerKwhMoney = new Money(value, settings.OperatingCurrencyId);
+					settingsService.UpsertAsync(settings).GetAwaiter().GetResult();
 					ConsoleEx.ShowMessage("Electricity price updated.");
 					break;
 				}
 				case "2":
 				{
-					var value = ConsoleEx.ReadDecimal($"Fixed cost per print in {store.GetOperatingCurrency()?.Code ?? "(base)"}", min: 0);
-					store.Settings.FixedCostPerPrintMoney = new Money(value, store.OperatingCurrencyId);
-					DataStore.Save(dataFilePath, store);
+					var value = ConsoleEx.ReadDecimal($"Fixed cost per print in {operatingCurrency?.Code ?? "(base)"}", min: 0);
+					settings.FixedCostPerPrintMoney = new Money(value, settings.OperatingCurrencyId);
+					settingsService.UpsertAsync(settings).GetAwaiter().GetResult();
 					ConsoleEx.ShowMessage("Fixed print cost updated.");
 					break;
 				}
-				case "4":
-                       store.Settings.FixedCostPerPrintMoney = new Money(ConsoleEx.ReadDecimal("Fixed cost per print", min: 0), store.OperatingCurrencyId);
-					DataStore.Save(dataFilePath, store);
-					ConsoleEx.ShowMessage("Fixed print cost updated.");
-					break;
-				case "0":
-					return;
-				default:
-					ConsoleEx.ShowMessage("Unknown option.");
-					break;
+				case "0": return;
+				default: ConsoleEx.ShowMessage("Unknown option."); break;
 			}
 		}
 	}
 
-	private static void ReportsMenu(AppData store)
+	private void ReportsMenu()
 	{
+		var materials = materialsService.GetAllAsync().GetAwaiter().GetResult();
+		var currencies = currenciesService.GetAllAsync().GetAwaiter().GetResult();
+		var settings = settingsService.GetAsync().GetAwaiter().GetResult() ?? new AppSettings();
+		var operatingCurrency = currencies.FirstOrDefault(c => c.Id == settings.OperatingCurrencyId);
+
 		Console.Clear();
 		ConsoleEx.PrintHeader("Reports / Overview");
 
-		if (!store.Materials.Any())
+		if (!materials.Any())
 		{
 			Console.WriteLine("No materials stored.");
 			ConsoleEx.Pause();
 			return;
 		}
 
-		var totalStockKg = store.Materials.Sum(x => x.AmountKg);
-		var totalStockM = store.Materials.Sum(x => x.EstimatedLengthMeters);
-		var totalValueBase = store.Materials.Sum(x => x.AmountKg * x.AveragePricePerKgMoney.ToBase(store));
+		var totalStockKg = materials.Sum(x => x.AmountKg);
+		var totalStockM = materials.Sum(x => x.EstimatedLengthMeters);
+		var totalValueBase = materials.Sum(x => x.AmountKg * x.AveragePricePerKgMoney.ToBase(currencies));
 
-		Console.WriteLine($"Material entries:         {store.Materials.Count}");
+		Console.WriteLine($"Material entries:         {materials.Count}");
 		Console.WriteLine($"Total stock:              {totalStockKg:F3} kg");
 		Console.WriteLine($"Estimated total length:   {totalStockM:F1} m");
-		Console.WriteLine($"Estimated stock value:    {MoneyFormatter.Format(store, totalValueBase)}");
+		Console.WriteLine($"Estimated stock value:    {MoneyFormatter.Format(operatingCurrency, totalValueBase)}");
 		Console.WriteLine();
 
-		foreach (var group in store.Materials
-				 .GroupBy(x => x.Type)
-				 .OrderBy(g => g.Key))
+		foreach (var group in materials.GroupBy(x => x.Type).OrderBy(g => g.Key))
 		{
-			var groupValueBase = group.Sum(x => x.AmountKg * x.AveragePricePerKgMoney.ToBase(store));
+			var groupValueBase = group.Sum(x => x.AmountKg * x.AveragePricePerKgMoney.ToBase(currencies));
 			Console.WriteLine($"[{group.Key}]");
 			Console.WriteLine($"  Entries: {group.Count()}");
 			Console.WriteLine($"  Stock:   {group.Sum(x => x.AmountKg):F3} kg");
-			Console.WriteLine($"  Value:   {MoneyFormatter.Format(store, groupValueBase)}");
+			Console.WriteLine($"  Value:   {MoneyFormatter.Format(operatingCurrency, groupValueBase)}");
 			Console.WriteLine();
 		}
 

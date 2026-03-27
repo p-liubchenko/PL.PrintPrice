@@ -19,5 +19,8 @@ internal sealed class AppSettingsConfiguration : IEntityTypeConfiguration<AppSet
 		builder.Property(x => x.FixedCostPerPrintMoney)
 			.HasConversion(new Converters.MoneyJsonConverter())
 			.HasColumnType("nvarchar(max)");
+
+		builder.Property(x => x.SelectedPrinterId).IsRequired(false);
+		builder.Property(x => x.OperatingCurrencyId).IsRequired(false);
 	}
 }

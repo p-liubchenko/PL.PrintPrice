@@ -1,23 +1,28 @@
 using Pricer.Models;
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Pricer;
 
-public sealed class CurrencyManagerCliDrawer
+public sealed class CurrencyManagerCliDrawer(
+	ICurrenciesService currenciesService,
+	ISettingsService settingsService)
 {
-	public void Menu(AppData appData, CurrencyManager manager)
+	public void Menu()
 	{
 		while (true)
 		{
+			var currencies = currenciesService.GetAllAsync().GetAwaiter().GetResult();
+			var settings = settingsService.GetAsync().GetAwaiter().GetResult() ?? new AppSettings();
+			var baseCurrency = currencies.FirstOrDefault(c => c.Value == 1m);
+			var operatingCurrency = currencies.FirstOrDefault(c => c.Id == settings.OperatingCurrencyId);
+
 			Console.Clear();
 			ConsoleEx.PrintHeader("Currency Management");
-
-			var baseCurrency = appData.Currencies.FirstOrDefault(c => c.Value == 1m);
-			var operating = appData.GetOperatingCurrency();
-           ConsoleEx.ShowInline($"Base currency: {(baseCurrency is null ? "(none)" : baseCurrency.Code)}", ConsoleEx.Severity.Safe);
-			ConsoleEx.ShowInline($"Operating currency: {(operating is null ? "(none)" : operating.Code)}", ConsoleEx.Severity.Safe);
+			ConsoleEx.ShowInline($"Base currency: {(baseCurrency is null ? "(none)" : baseCurrency.Code)}", ConsoleEx.Severity.Safe);
+			ConsoleEx.ShowInline($"Operating currency: {(operatingCurrency is null ? "(none)" : operatingCurrency.Code)}", ConsoleEx.Severity.Safe);
 			Console.WriteLine();
 
 			Console.WriteLine("1) List currencies");
@@ -30,55 +35,41 @@ public sealed class CurrencyManagerCliDrawer
 
 			switch (ConsoleEx.ReadMenuChoice("Choose an option"))
 			{
-				case "1":
-					List(appData);
-					break;
-				case "2":
-					Add(appData, manager);
-					break;
-				case "3":
-					SelectOperating(appData, manager);
-					break;
-				case "4":
-					SetBase(appData, manager);
-					break;
-				case "5":
-					Remove(appData, manager);
-					break;
-				case "0":
-					return;
-				default:
-					ConsoleEx.ShowMessage("Unknown option.");
-					break;
+				case "1": List(currencies, settings); break;
+				case "2": Add(); break;
+				case "3": SelectOperating(currencies); break;
+				case "4": SetBase(currencies); break;
+				case "5": Remove(currencies); break;
+				case "0": return;
+				default: ConsoleEx.ShowMessage("Unknown option."); break;
 			}
 		}
 	}
 
-	private static void List(AppData appData)
+	private static void List(List<Currency> currencies, AppSettings settings)
 	{
 		Console.Clear();
 		ConsoleEx.PrintHeader("Currencies");
 
-		if (!appData.Currencies.Any())
+		if (!currencies.Any())
 		{
 			Console.WriteLine("No currencies defined.");
 			ConsoleEx.Pause();
 			return;
 		}
 
-		var operating = appData.GetOperatingCurrency();
-		for (int i = 0; i < appData.Currencies.Count; i++)
+		for (int i = 0; i < currencies.Count; i++)
 		{
-			var c = appData.Currencies[i];
+			var c = currencies[i];
 			var baseMark = c.Value == 1m ? "(base)" : "";
-			var opMark = operating?.Id == c.Id ? "*" : " ";
+			var opMark = settings.OperatingCurrencyId == c.Id ? "*" : " ";
 			Console.WriteLine($"{opMark}{i + 1}) {c.Code} | value: {c.Value} {baseMark}");
 		}
 
 		ConsoleEx.Pause();
 	}
 
-	private static void Add(AppData appData, CurrencyManager manager)
+	private void Add()
 	{
 		Console.Clear();
 		ConsoleEx.PrintHeader("Add Currency");
@@ -90,95 +81,75 @@ public sealed class CurrencyManagerCliDrawer
 			Value = ConsoleEx.ReadDecimal("Value (relative to base currency)", min: 0.000001m)
 		};
 
-		if (!manager.AddCurrency(appData, currency, out var error))
-		{
-			ConsoleEx.ShowMessage(error);
-			return;
-		}
-
-		ConsoleEx.ShowMessage("Currency added.");
+		var (success, error) = currenciesService.AddAsync(currency).GetAwaiter().GetResult();
+		ConsoleEx.ShowMessage(success ? "Currency added." : error);
 	}
 
-	private static void SelectOperating(AppData appData, CurrencyManager manager)
+	private void SelectOperating(List<Currency> currencies)
 	{
 		Console.Clear();
 		ConsoleEx.PrintHeader("Select Operating Currency");
 
-		if (!appData.Currencies.Any())
+		if (!currencies.Any())
 		{
 			ConsoleEx.ShowMessage("No currencies defined.");
 			return;
 		}
 
-		for (int i = 0; i < appData.Currencies.Count; i++)
+		for (int i = 0; i < currencies.Count; i++)
 		{
-			Console.WriteLine($"{i + 1}) {appData.Currencies[i].Code}");
+			Console.WriteLine($"{i + 1}) {currencies[i].Code}");
 		}
 
-		var index = ConsoleEx.ReadInt("Select currency", 1, appData.Currencies.Count) - 1;
-		if (!manager.SelectOperatingCurrency(appData, index, out var error))
-		{
-			ConsoleEx.ShowMessage(error);
-			return;
-		}
-
-		ConsoleEx.ShowMessage("Operating currency selected.");
+		var index = ConsoleEx.ReadInt("Select currency", 1, currencies.Count) - 1;
+		var (success, error) = currenciesService.SetOperatingCurrencyAsync(currencies[index].Id).GetAwaiter().GetResult();
+		ConsoleEx.ShowMessage(success ? "Operating currency selected." : error);
 	}
 
-	private static void SetBase(AppData appData, CurrencyManager manager)
+	private void SetBase(List<Currency> currencies)
 	{
 		Console.Clear();
 		ConsoleEx.PrintHeader("Set Base Currency");
 
-		if (!appData.Currencies.Any())
+		if (!currencies.Any())
 		{
 			ConsoleEx.ShowMessage("No currencies defined.");
 			return;
 		}
 
-		for (int i = 0; i < appData.Currencies.Count; i++)
+		for (int i = 0; i < currencies.Count; i++)
 		{
-			Console.WriteLine($"{i + 1}) {appData.Currencies[i].Code} (current value: {appData.Currencies[i].Value})");
+			Console.WriteLine($"{i + 1}) {currencies[i].Code} (current value: {currencies[i].Value})");
 		}
 
-		var index = ConsoleEx.ReadInt("Select base currency", 1, appData.Currencies.Count) - 1;
-		var currencyId = appData.Currencies[index].Id;
-		if (!manager.SetBaseCurrency(appData, currencyId, out var error))
-		{
-			ConsoleEx.ShowMessage(error);
-			return;
-		}
-
-		ConsoleEx.ShowMessage("Base currency updated.");
+		var index = ConsoleEx.ReadInt("Select base currency", 1, currencies.Count) - 1;
+		var (success, error) = currenciesService.SetBaseCurrencyAsync(currencies[index].Id).GetAwaiter().GetResult();
+		ConsoleEx.ShowMessage(success ? "Base currency updated." : error);
 	}
 
-	private static void Remove(AppData appData, CurrencyManager manager)
+	private void Remove(List<Currency> currencies)
 	{
 		Console.Clear();
 		ConsoleEx.PrintHeader("Remove Currency");
 
-		if (!appData.Currencies.Any())
+		if (!currencies.Any())
 		{
 			ConsoleEx.ShowMessage("No currencies to remove.");
 			return;
 		}
 
-		for (int i = 0; i < appData.Currencies.Count; i++)
+		for (int i = 0; i < currencies.Count; i++)
 		{
-			Console.WriteLine($"{i + 1}) {appData.Currencies[i].Code}");
+			Console.WriteLine($"{i + 1}) {currencies[i].Code}");
 		}
 
-		var index = ConsoleEx.ReadInt("Select currency", 1, appData.Currencies.Count) - 1;
-		var removedCode = appData.Currencies[index].Code;
-        ConsoleEx.RequestConfirmation($"Remove currency '{removedCode}'?", ConsoleEx.Severity.Critical, () =>
-		   {
-			   if (!manager.RemoveCurrency(appData, index, out var error))
-			   {
-                ConsoleEx.ShowMessage(error, ConsoleEx.Severity.Critical);
-				   return;
-			   }
+		var index = ConsoleEx.ReadInt("Select currency", 1, currencies.Count) - 1;
+		var removedCode = currencies[index].Code;
 
-            ConsoleEx.ShowMessage($"Removed: {removedCode}", ConsoleEx.Severity.Critical);
-		   });
+		ConsoleEx.RequestConfirmation($"Remove currency '{removedCode}'?", ConsoleEx.Severity.Critical, () =>
+		{
+			var (success, error) = currenciesService.RemoveAsync(currencies[index].Id).GetAwaiter().GetResult();
+			ConsoleEx.ShowMessage(success ? $"Removed: {removedCode}" : error, ConsoleEx.Severity.Critical);
+		});
 	}
 }

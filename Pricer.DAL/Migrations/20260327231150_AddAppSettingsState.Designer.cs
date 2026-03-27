@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Pricer.DAL.Ef;
 
@@ -11,9 +12,11 @@ using Pricer.DAL.Ef;
 namespace Pricer.DAL.Migrations
 {
     [DbContext(typeof(PricerDbContext))]
-    partial class PricerDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260327231150_AddAppSettingsState")]
+    partial class AddAppSettingsState
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

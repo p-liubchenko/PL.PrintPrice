@@ -1,27 +1,35 @@
 using Pricer.Models;
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Pricer;
 
-public sealed class PrinterManagerCliDrawer
+public sealed class PrinterManagerCliDrawer(
+	IPrintersService printersService,
+	ICurrenciesService currenciesService,
+	ISettingsService settingsService)
 {
-	public void Menu(AppData store, PrinterManager manager)
+	public void Menu()
 	{
 		while (true)
 		{
+			var printers = printersService.GetAllAsync().GetAwaiter().GetResult();
+			var (currencies, settings, operatingCurrency) = LoadContext();
+			var selectedPrinter = printers.FirstOrDefault(p => p.Id == settings.SelectedPrinterId);
+
 			Console.Clear();
 			ConsoleEx.PrintHeader("Printer Management");
 
-			if (store.Printers.Any())
+			if (printers.Any())
 			{
-				var selected = store.GetSelectedPrinter();
-				Console.WriteLine($"Printers: {store.Printers.Count}");
-				ConsoleEx.ShowInline($"Selected: {(selected is null ? "(none)" : selected.Name)}", ConsoleEx.Severity.Safe);
-				if (selected is not null)
+				Console.WriteLine($"Printers: {printers.Count}");
+				ConsoleEx.ShowInline($"Selected: {(selectedPrinter is null ? "(none)" : selectedPrinter.Name)}", ConsoleEx.Severity.Safe);
+				if (selectedPrinter is not null)
 				{
-					Console.WriteLine($"  Avg power: {selected.AveragePowerWatts:F0} W");
-					Console.WriteLine($"  Hourly cost: {MoneyFormatter.FormatPerHour(store, selected.HourlyCostMoney.ToBase(store))}");
+					Console.WriteLine($"  Avg power: {selectedPrinter.AveragePowerWatts:F0} W");
+					Console.WriteLine($"  Hourly cost: {MoneyFormatter.FormatPerHour(operatingCurrency, selectedPrinter.HourlyCostMoney.ToBase(currencies))}");
 				}
 			}
 			else
@@ -39,51 +47,39 @@ public sealed class PrinterManagerCliDrawer
 
 			switch (ConsoleEx.ReadMenuChoice("Choose an option"))
 			{
-				case "1":
-					ListPrinters(store);
-					break;
-				case "2":
-					AddPrinter(store, manager);
-					break;
-				case "3":
-					SelectPrinter(store, manager);
-					break;
-				case "4":
-					RemovePrinter(store, manager);
-					break;
-				case "0":
-					return;
-				default:
-					ConsoleEx.ShowMessage("Unknown option.");
-					break;
+				case "1": ListPrinters(printers, currencies, operatingCurrency, settings); break;
+				case "2": AddPrinter(settings, operatingCurrency); break;
+				case "3": SelectPrinter(printers); break;
+				case "4": RemovePrinter(printers); break;
+				case "0": return;
+				default: ConsoleEx.ShowMessage("Unknown option."); break;
 			}
 		}
 	}
 
-	private static void ListPrinters(AppData store)
+	private static void ListPrinters(List<Printer> printers, List<Currency> currencies, Currency? operatingCurrency, AppSettings settings)
 	{
 		Console.Clear();
 		ConsoleEx.PrintHeader("Printers");
 
-		if (!store.Printers.Any())
+		if (!printers.Any())
 		{
 			Console.WriteLine("No printers stored.");
 			ConsoleEx.Pause();
 			return;
 		}
 
-		var selectedId = store.SelectedPrinterId;
-		for (int i = 0; i < store.Printers.Count; i++)
+		for (int i = 0; i < printers.Count; i++)
 		{
-			var p = store.Printers[i];
-			var selectedMark = p.Id == selectedId ? "*" : " ";
-			Console.WriteLine($"{selectedMark}{i + 1}) {p.Name} | {p.AveragePowerWatts:F0} W | {MoneyFormatter.FormatPerHour(store, p.HourlyCostMoney.ToBase(store))}");
+			var p = printers[i];
+			var selectedMark = p.Id == settings.SelectedPrinterId ? "*" : " ";
+			Console.WriteLine($"{selectedMark}{i + 1}) {p.Name} | {p.AveragePowerWatts:F0} W | {MoneyFormatter.FormatPerHour(operatingCurrency, p.HourlyCostMoney.ToBase(currencies))}");
 		}
 
 		ConsoleEx.Pause();
 	}
 
-	private static void AddPrinter(AppData store, PrinterManager manager)
+	private void AddPrinter(AppSettings settings, Currency? operatingCurrency)
 	{
 		Console.Clear();
 		ConsoleEx.PrintHeader("Add Printer");
@@ -93,69 +89,67 @@ public sealed class PrinterManagerCliDrawer
 			Id = Guid.NewGuid(),
 			Name = ConsoleEx.ReadRequiredString("Printer name"),
 			AveragePowerWatts = ConsoleEx.ReadDecimal("Average power draw (W)", min: 0),
-            HourlyCostMoney = new Money(
-				ConsoleEx.ReadDecimal($"Hourly overhead cost ({store.GetOperatingCurrency()?.Code ?? "(base)"}/h)", min: 0),
-				store.OperatingCurrencyId)
+			HourlyCostMoney = new Money(
+				ConsoleEx.ReadDecimal($"Hourly overhead cost ({operatingCurrency?.Code ?? "(base)"}/h)", min: 0),
+				settings.OperatingCurrencyId)
 		};
 
-		manager.AddPrinter(store, printer);
+		printersService.AddAsync(printer).GetAwaiter().GetResult();
 		ConsoleEx.ShowMessage("Printer added.");
 	}
 
-	private static void SelectPrinter(AppData store, PrinterManager manager)
+	private void SelectPrinter(List<Printer> printers)
 	{
 		Console.Clear();
 		ConsoleEx.PrintHeader("Select Printer");
 
-		if (!store.Printers.Any())
+		if (!printers.Any())
 		{
 			ConsoleEx.ShowMessage("No printers to select.");
 			return;
 		}
 
-		for (int i = 0; i < store.Printers.Count; i++)
+		for (int i = 0; i < printers.Count; i++)
 		{
-			Console.WriteLine($"{i + 1}) {store.Printers[i].Name}");
+			Console.WriteLine($"{i + 1}) {printers[i].Name}");
 		}
 
-		var index = ConsoleEx.ReadInt("Select printer number", 1, store.Printers.Count) - 1;
-		if (!manager.SelectPrinter(store, index, out var error))
-		{
-			ConsoleEx.ShowMessage(error);
-			return;
-		}
-
+		var index = ConsoleEx.ReadInt("Select printer number", 1, printers.Count) - 1;
+		printersService.SelectAsync(printers[index].Id).GetAwaiter().GetResult();
 		ConsoleEx.ShowMessage("Printer selected.");
 	}
 
-	private static void RemovePrinter(AppData store, PrinterManager manager)
+	private void RemovePrinter(List<Printer> printers)
 	{
 		Console.Clear();
 		ConsoleEx.PrintHeader("Remove Printer");
 
-		if (!store.Printers.Any())
+		if (!printers.Any())
 		{
 			ConsoleEx.ShowMessage("No printers to remove.");
 			return;
 		}
 
-		for (int i = 0; i < store.Printers.Count; i++)
+		for (int i = 0; i < printers.Count; i++)
 		{
-			Console.WriteLine($"{i + 1}) {store.Printers[i].Name}");
+			Console.WriteLine($"{i + 1}) {printers[i].Name}");
 		}
 
-		var index = ConsoleEx.ReadInt("Enter printer number to remove", 1, store.Printers.Count) - 1;
-		var removed = store.Printers[index].Name;
-		ConsoleEx.RequestConfirmation($"Remove printer '{removed}'?", ConsoleEx.Severity.Critical, () =>
-		   {
-			   if (!manager.RemovePrinter(store, index, out var error))
-			   {
-				   ConsoleEx.ShowMessage(error, ConsoleEx.Severity.Critical);
-				   return;
-			   }
+		var index = ConsoleEx.ReadInt("Enter printer number to remove", 1, printers.Count) - 1;
+		var removed = printers[index].Name;
 
-			   ConsoleEx.ShowMessage($"Removed: {removed}", ConsoleEx.Severity.Critical);
-		   });
+		ConsoleEx.RequestConfirmation($"Remove printer '{removed}'?", ConsoleEx.Severity.Critical, () =>
+		{
+			var (success, error) = printersService.RemoveAsync(printers[index].Id).GetAwaiter().GetResult();
+			ConsoleEx.ShowMessage(success ? $"Removed: {removed}" : error, ConsoleEx.Severity.Critical);
+		});
+	}
+
+	private (List<Currency> currencies, AppSettings settings, Currency? operatingCurrency) LoadContext()
+	{
+		var currencies = currenciesService.GetAllAsync().GetAwaiter().GetResult();
+		var settings = settingsService.GetAsync().GetAwaiter().GetResult() ?? new AppSettings();
+		var operatingCurrency = currencies.FirstOrDefault(c => c.Id == settings.OperatingCurrencyId);
+		return (currencies, settings, operatingCurrency);
 	}
 }
-

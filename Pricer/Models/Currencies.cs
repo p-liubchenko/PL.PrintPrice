@@ -12,17 +12,14 @@ public sealed class Currency
 
 public static class CurrencyExtensions
 {
- public static Currency? GetBaseCurrency(this AppData data)
+	public static Currency? GetBaseCurrency(this AppData data)
 		=> data.Currencies.FirstOrDefault(c => c.Value == 1m);
 
 	public static Currency? GetOperatingCurrency(this AppData data)
 	{
-		var id = data.OperatingCurrencyId;
+		var id = data.Settings?.OperatingCurrencyId ?? data.OperatingCurrencyId;
 		if (id is null)
-		{
 			return null;
-		}
-
 		return data.Currencies.FirstOrDefault(c => c.Id == id.Value);
 	}
 }
