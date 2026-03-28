@@ -99,7 +99,7 @@ public class Program
 
 		// ── Pipeline ─────────────────────────────────────────────────────────
 		app.UseDefaultFiles();
-		app.MapStaticAssets();
+		app.UseStaticFiles();
 
 		if (app.Environment.IsDevelopment())
 		{
