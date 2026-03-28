@@ -164,7 +164,8 @@ public sealed class FilamentWarehouseCliDrawer(
 		Console.WriteLine();
 
 		var kg = ConsoleEx.ReadDecimal("How many kg to consume", min: 0.001m);
-		var meters = ConsoleEx.ReadDecimal("How many meters to consume (~)", min: 0);
+		var suggestedLength = FilamentSizeEstimator.SuggestLengthMeters(material.Type, kg);
+		var meters = ConsoleEx.ReadDecimal("How many meters to consume (~)", min: 0, suggestedLength);
 
 		var (success, error) = materialsService.ConsumeAsync(material.Id, kg, meters).GetAwaiter().GetResult();
 		ConsoleEx.ShowMessage(success ? "Material deducted from stock." : error);
