@@ -1,0 +1,54 @@
+<div class="page-header">
+  <h1>Currencies</h1>
+  <button class="btn-primary" (click)="openAdd()">+ Add currency</button>
+</div>
+
+<div class="error" *ngIf="error">{{ error }}</div>
+<div class="loading" *ngIf="loading">Loading…</div>
+
+<table *ngIf="!loading && currencies.length > 0">
+  <thead>
+    <tr>
+      <th>Code</th>
+      <th>Value (per base unit)</th>
+      <th>Role</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let c of currencies">
+      <td>{{ c.code }}</td>
+      <td>{{ c.value | number:'1.4-6' }}</td>
+      <td>
+        <span *ngIf="isBase(c)" class="badge badge-blue">Base</span>
+        <span *ngIf="c.id === operatingCurrencyId" class="badge badge-green">Operating</span>
+        <button *ngIf="!isBase(c)" class="btn-sm" (click)="setBase(c.id)">Set base</button>
+        <button *ngIf="c.id !== operatingCurrencyId" class="btn-sm" (click)="setOperating(c.id)">Set operating</button>
+      </td>
+      <td class="actions">
+        <button class="btn-sm" (click)="openEdit(c)">Edit</button>
+        <button class="btn-sm btn-danger" (click)="remove(c.id)">Delete</button>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<p *ngIf="!loading && currencies.length === 0" class="empty">No currencies. Add one (e.g. USD, value = 1 for base).</p>
+
+<div class="card form-card" *ngIf="showForm">
+  <h3>{{ editTarget ? 'Edit currency' : 'Add currency' }}</h3>
+  <form (ngSubmit)="save()" #f="ngForm">
+    <div class="field">
+      <label>Code (e.g. USD, EUR)</label>
+      <input type="text" [(ngModel)]="form.code" name="code" required maxlength="8" />
+    </div>
+    <div class="field">
+      <label>Value (units of this currency per 1 base unit)</label>
+      <input type="number" [(ngModel)]="form.value" name="value" min="0.000001" step="0.0001" required />
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn-primary" [disabled]="!f.valid">Save</button>
+      <button type="button" class="btn-sm" (click)="showForm = false">Cancel</button>
+    </div>
+  </form>
+</div>

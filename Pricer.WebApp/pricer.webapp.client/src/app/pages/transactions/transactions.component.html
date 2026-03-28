@@ -1,0 +1,120 @@
+<div class="page-header">
+  <h1>Transactions</h1>
+  <button class="btn-primary" (click)="openRecord()">+ Record print</button>
+</div>
+
+<div class="error" *ngIf="error">{{ error }}</div>
+<div class="loading" *ngIf="loading">Loading…</div>
+
+<!-- Last result -->
+<div class="card result-card" *ngIf="recordResult">
+  <strong>Print recorded.</strong>
+  Total: {{ recordResult.total | number:'1.2-4' }} &nbsp;|&nbsp;
+  Material: {{ recordResult.materialCost | number:'1.2-4' }} &nbsp;|&nbsp;
+  Electricity: {{ recordResult.electricityCost | number:'1.2-4' }} &nbsp;|&nbsp;
+  Wear: {{ recordResult.printerWearCost | number:'1.2-4' }} &nbsp;|&nbsp;
+  Fixed: {{ recordResult.fixedCost | number:'1.2-4' }}
+</div>
+
+<!-- Tabs -->
+<div class="tabs" *ngIf="!loading">
+  <button [class.tab-active]="tab === 'prints'" (click)="tab = 'prints'">Prints ({{ prints.length }})</button>
+  <button [class.tab-active]="tab === 'stock'" (click)="tab = 'stock'">Stock ({{ stock.length }})</button>
+</div>
+
+<!-- Prints table -->
+<table *ngIf="!loading && tab === 'prints' && prints.length > 0">
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Material</th>
+      <th>Printer</th>
+      <th>Hours</th>
+      <th>Filament (kg)</th>
+      <th>Total cost</th>
+      <th>Status</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let p of prints" [class.reverted]="p.status === PrintTransactionStatus.Reverted">
+      <td>{{ formatDate(p.createdAt) }}</td>
+      <td>{{ p.materialNameSnapshot }}</td>
+      <td>{{ p.printerNameSnapshot }}</td>
+      <td>{{ p.printHours | number:'1.1-2' }}</td>
+      <td>{{ p.filamentKg | number:'1.3-3' }}</td>
+      <td>{{ (p.materialCost + p.electricityCost + p.printerWearCost + p.fixedCost + p.extraFixedCost) | number:'1.2-4' }}</td>
+      <td>
+        <span class="badge" [class.badge-green]="p.status === PrintTransactionStatus.Completed"
+              [class.badge-gray]="p.status === PrintTransactionStatus.Reverted">
+          {{ p.status === PrintTransactionStatus.Completed ? 'Completed' : 'Reverted' }}
+        </span>
+      </td>
+      <td class="actions">
+        <button *ngIf="p.status === PrintTransactionStatus.Completed" class="btn-sm" (click)="revert(p.id)">Revert</button>
+        <button class="btn-sm btn-danger" (click)="delete(p.id)">Delete</button>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<p *ngIf="!loading && tab === 'prints' && prints.length === 0" class="empty">No prints recorded yet.</p>
+
+<!-- Stock table -->
+<table *ngIf="!loading && tab === 'stock' && stock.length > 0">
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Type</th>
+      <th>Material</th>
+      <th>Δ kg</th>
+      <th>Δ meters</th>
+      <th>Note</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let s of stock">
+      <td>{{ formatDate(s.createdAt) }}</td>
+      <td>{{ stockTypeLabel(s.type) }}</td>
+      <td>{{ s.materialNameSnapshot }}</td>
+      <td [class.positive]="s.kgDelta > 0" [class.negative]="s.kgDelta < 0">
+        {{ s.kgDelta > 0 ? '+' : '' }}{{ s.kgDelta | number:'1.3-3' }}
+      </td>
+      <td [class.positive]="s.metersDelta > 0" [class.negative]="s.metersDelta < 0">
+        {{ s.metersDelta > 0 ? '+' : '' }}{{ s.metersDelta | number:'1.0-1' }}
+      </td>
+      <td>{{ s.note }}</td>
+    </tr>
+  </tbody>
+</table>
+<p *ngIf="!loading && tab === 'stock' && stock.length === 0" class="empty">No stock transactions yet.</p>
+
+<!-- Record print form -->
+<div class="card form-card" *ngIf="showRecordForm">
+  <h3>Record print</h3>
+  <form (ngSubmit)="recordPrint()" #rf="ngForm">
+    <div class="field">
+      <label>Material</label>
+      <select [(ngModel)]="recordForm.materialId" name="material" required>
+        <option *ngFor="let m of materials" [value]="m.id">{{ m.name }} ({{ m.amountKg | number:'1.2-2' }} kg left)</option>
+      </select>
+    </div>
+    <div class="fields-row">
+      <div class="field">
+        <label>Filament used (grams)</label>
+        <input type="number" [(ngModel)]="recordForm.filamentGrams" name="grams" min="0" step="0.1" required />
+      </div>
+      <div class="field">
+        <label>Print time (hours)</label>
+        <input type="number" [(ngModel)]="recordForm.printHours" name="hours" min="0" step="0.01" required />
+      </div>
+      <div class="field">
+        <label>Extra fixed cost</label>
+        <input type="number" [(ngModel)]="recordForm.extraFixedCost" name="extra" min="0" step="0.01" />
+      </div>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn-primary" [disabled]="!rf.valid">Record</button>
+      <button type="button" class="btn-sm" (click)="showRecordForm = false">Cancel</button>
+    </div>
+  </form>
+</div>

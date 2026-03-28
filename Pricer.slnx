@@ -1,6 +1,12 @@
 <Solution>
   <Project Path="Pricer.Application/Pricer.Application.csproj" />
   <Project Path="Pricer.Cli/Pricer.Cli.csproj" />
+  <Project Path="Pricer.DAL.Security/Pricer.DAL.Security.csproj" Id="cae45fbc-919e-491a-87a2-9dbdbd02f042" />
   <Project Path="Pricer.DAL/Pricer.DAL.csproj" />
+  <Project Path="Pricer.WebApp/pricer.webapp.client/pricer.webapp.client.esproj">
+    <Build />
+    <Deploy />
+  </Project>
+  <Project Path="Pricer.WebApp/Pricer.WebApp.Server/Pricer.WebApp.Server.csproj" Id="3283377b-15c3-4ed8-bb5e-08eb50d61b29" />
   <Project Path="Pricer/Pricer.csproj" />
 </Solution>

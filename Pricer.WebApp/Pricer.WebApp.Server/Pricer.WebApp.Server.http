@@ -1,0 +1,6 @@
+@Pricer.WebApp.Server_HostAddress = http://localhost:5170
+
+GET {{Pricer.WebApp.Server_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

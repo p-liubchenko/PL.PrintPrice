@@ -1,0 +1,24 @@
+**/.git
+**/.gitignore
+**/.vs
+**/.vscode
+**/.idea
+
+# .NET build artifacts
+**/bin/
+**/obj/
+**/out/
+
+# node_modules and Angular dist are rebuilt inside Docker
+Pricer.WebApp/pricer.webapp.client/node_modules/
+Pricer.WebApp/pricer.webapp.client/dist/
+
+# Test results
+**/TestResults/
+
+# User-specific / IDE files
+**/*.user
+**/launchSettings.json
+
+# Local secrets — must be provided at runtime via environment variables
+**/appsettings.Development.json

@@ -361,3 +361,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+Pricer.WebApp/Pricer.WebApp.Server/data.json
+Pricer.WebApp/Pricer.WebApp.Server/security.db
+*.db*

@@ -1,0 +1,60 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>6c4a21fc-d121-40f0-bab8-a04d45e06aa5</UserSecretsId>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    <DockerfileContext>..\..</DockerfileContext>
+    <SpaRoot>..\pricer.webapp.client\</SpaRoot>
+    <SpaProxyLaunchCommand>npm start</SpaProxyLaunchCommand>
+    <SpaProxyServerUrl>https://localhost:52298</SpaProxyServerUrl>
+    <!-- Angular output path (relative to SpaRoot) produced by "npm run build" -->
+    <SpaDistPath>$(SpaRoot)dist\pricer.webapp.client\browser\</SpaDistPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.5" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.AspNetCore.SpaProxy">
+      <Version>10.*-*</Version>
+    </PackageReference>
+    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.23.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Pricer.Application\Pricer.Application.csproj" />
+    <ProjectReference Include="..\..\Pricer.DAL\Pricer.DAL.csproj" />
+    <ProjectReference Include="..\..\Pricer.DAL.Security\Pricer.DAL.Security.csproj" />
+    <!-- Dev-time proxy only; skipped when BuildNodeProject=false (CI / Docker) -->
+    <ProjectReference Include="$(SpaRoot)pricer.webapp.client.esproj"
+                      Condition="'$(BuildNodeProject)' != 'false'">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+
+  <!--
+    In Release builds where the Angular dist already exists on disk
+    (pre-built by CI or Docker's Node stage), include it in wwwroot.
+    Skipped in Debug so the SpaProxy dev server is used instead.
+  -->
+  <Target Name="IncludeAngularDist" BeforeTargets="PrepareForPublish"
+          Condition="'$(Configuration)' == 'Release' And Exists('$(SpaDistPath)')">
+    <ItemGroup>
+      <DistFiles Include="$(SpaDistPath)**\*" />
+      <ResolvedFileToPublish Include="@(DistFiles->'%(FullPath)')"
+                             Exclude="@(ResolvedFileToPublish)">
+        <RelativePath>wwwroot\%(RecursiveDir)%(Filename)%(Extension)</RelativePath>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+        <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      </ResolvedFileToPublish>
+    </ItemGroup>
+    <Message Text="Angular dist included from $(SpaDistPath)" Importance="high" />
+  </Target>
+
+</Project>

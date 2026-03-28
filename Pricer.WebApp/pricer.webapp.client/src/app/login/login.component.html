@@ -1,0 +1,23 @@
+<div class="login-wrap">
+  <div class="login-card">
+    <h1 class="login-title">PL.PrintPrice</h1>
+    <h2>Sign in</h2>
+
+    <form (ngSubmit)="submit()" #f="ngForm">
+      <div class="field">
+        <label>Username</label>
+        <input type="text" [(ngModel)]="username" name="username" required autocomplete="username" />
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" [(ngModel)]="password" name="password" required autocomplete="current-password" />
+      </div>
+
+      <div class="error" *ngIf="error">{{ error }}</div>
+
+      <button type="submit" [disabled]="loading || !f.valid" class="btn-primary">
+        {{ loading ? 'Please wait…' : 'Sign in' }}
+      </button>
+    </form>
+  </div>
+</div>

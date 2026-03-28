@@ -1,0 +1,25 @@
+<ng-container *ngIf="auth.isLoggedIn(); else noNav">
+  <div class="shell">
+    <nav class="sidebar">
+      <div class="sidebar-brand">PL.PrintPrice</div>
+      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">Dashboard</a>
+      <a routerLink="/printers" routerLinkActive="active">Printers</a>
+      <a routerLink="/materials" routerLinkActive="active">Materials</a>
+      <a routerLink="/currencies" routerLinkActive="active">Currencies</a>
+      <a routerLink="/transactions" routerLinkActive="active">Transactions</a>
+      <a routerLink="/settings" routerLinkActive="active">Settings</a>
+      <a *ngIf="auth.isAdmin()" routerLink="/users" routerLinkActive="active">Users</a>
+      <div class="sidebar-spacer"></div>
+      <div class="sidebar-user">{{ auth.getUsername() }}</div>
+      <a routerLink="/change-password" class="sidebar-link-sm">Change password</a>
+      <button class="btn-logout" (click)="logout()">Sign out</button>
+    </nav>
+    <main class="content">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+</ng-container>
+
+<ng-template #noNav>
+  <router-outlet></router-outlet>
+</ng-template>

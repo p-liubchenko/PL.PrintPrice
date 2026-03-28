@@ -1,0 +1,31 @@
+<div class="page-header"><h1>Dashboard</h1></div>
+
+<div *ngIf="loading" class="loading">Loading…</div>
+
+<div *ngIf="!loading" class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-value">{{ printers.length }}</div>
+    <div class="stat-label">Printers</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value">{{ materials.length }}</div>
+    <div class="stat-label">Materials</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value">{{ totalStockKg | number:'1.2-2' }} kg</div>
+    <div class="stat-label">Total filament stock</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value">{{ printCount }}</div>
+    <div class="stat-label">Total prints recorded</div>
+  </div>
+</div>
+
+<div *ngIf="!loading && selectedPrinter" class="info-box">
+  Active printer: <strong>{{ selectedPrinter!.name }}</strong>
+  ({{ selectedPrinter!.averagePowerWatts }} W)
+</div>
+
+<div *ngIf="!loading && !selectedPrinter" class="info-box warn">
+  No printer selected. Go to <a routerLink="/printers">Printers</a> to add and select one.
+</div>

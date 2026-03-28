@@ -1,0 +1,43 @@
+<div class="page-header"><h1>Settings</h1></div>
+
+<div class="loading" *ngIf="loading">Loading…</div>
+<div class="error" *ngIf="error">{{ error }}</div>
+<div class="success" *ngIf="saved">Settings saved.</div>
+
+<div class="card form-card" *ngIf="!loading && settings">
+  <form (ngSubmit)="save()" #f="ngForm">
+    <h3>Costs</h3>
+    <div class="fields-row">
+      <div class="field">
+        <label>Electricity price per kWh (base currency)</label>
+        <input type="number" [(ngModel)]="form.electricityAmount" name="elec" min="0" step="0.0001" required />
+      </div>
+      <div class="field">
+        <label>Fixed cost per print (base currency)</label>
+        <input type="number" [(ngModel)]="form.fixedCostAmount" name="fixed" min="0" step="0.0001" required />
+      </div>
+    </div>
+
+    <h3>Defaults</h3>
+    <div class="fields-row">
+      <div class="field">
+        <label>Selected printer</label>
+        <select [(ngModel)]="form.selectedPrinterId" name="printer">
+          <option [value]="null">— none —</option>
+          <option *ngFor="let p of printers" [value]="p.id">{{ p.name }}</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Operating currency</label>
+        <select [(ngModel)]="form.operatingCurrencyId" name="currency">
+          <option [value]="null">— base —</option>
+          <option *ngFor="let c of currencies" [value]="c.id">{{ c.code }}</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn-primary" [disabled]="!f.valid">Save settings</button>
+    </div>
+  </form>
+</div>

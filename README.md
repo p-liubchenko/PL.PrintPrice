@@ -1,6 +1,6 @@
 # Pricer
 
-CLI tool for managing 3D-printing costs. Track filament spools (purchase, restock, consumption), printers with hourly overhead and power draw, currencies with exchange rates, and print transactions. Calculates material cost, electricity cost, and printer wear for any print job.
+CLI tool for managing 3D-printing costs. A browser-based web UI is also available — see [web-README.md](web-README.md). Track filament spools (purchase, restock, consumption), printers with hourly overhead and power draw, currencies with exchange rates, and print transactions. Calculates material cost, electricity cost, and printer wear for any print job.
 
 Supports two data backends — a local JSON file (zero setup) and SQL Server — and migrates automatically when you switch between them.
 

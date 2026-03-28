@@ -1,0 +1,32 @@
+<div class="login-wrap">
+  <div class="login-card onboarding-card">
+    <h1 class="login-title">PL.PrintPrice</h1>
+    <h2>Welcome — create your administrator account</h2>
+    <p class="onboarding-hint">
+      This is a one-time setup. After this, new users can only be added by an administrator.
+    </p>
+
+    <form (ngSubmit)="submit()" #f="ngForm">
+      <div class="field">
+        <label>Username</label>
+        <input type="text" [(ngModel)]="username" name="username" required autocomplete="username" />
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" [(ngModel)]="password" name="password" required minlength="6" autocomplete="new-password" />
+      </div>
+      <div class="field">
+        <label>Confirm password</label>
+        <input type="password" [(ngModel)]="confirmPassword" name="confirm" required autocomplete="new-password"
+               [class.field-error]="passwordMismatch" />
+        <span class="field-hint error" *ngIf="passwordMismatch">Passwords do not match.</span>
+      </div>
+
+      <div class="error" *ngIf="error">{{ error }}</div>
+
+      <button type="submit" class="btn-primary" [disabled]="loading || !f.valid || passwordMismatch">
+        {{ loading ? 'Creating account…' : 'Create administrator account' }}
+      </button>
+    </form>
+  </div>
+</div>

@@ -1,0 +1,59 @@
+<div class="page-header">
+  <h1>Printers</h1>
+  <button class="btn-primary" (click)="openAdd()">+ Add printer</button>
+</div>
+
+<div class="error" *ngIf="error">{{ error }}</div>
+<div class="loading" *ngIf="loading">Loading…</div>
+
+<table *ngIf="!loading && printers.length > 0">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Power (W)</th>
+      <th>Hourly cost</th>
+      <th>Status</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let p of printers" [class.row-selected]="p.id === selectedPrinterId">
+      <td>{{ p.name }}</td>
+      <td>{{ p.averagePowerWatts }}</td>
+      <td>{{ p.hourlyCostMoney.amount | number:'1.2-4' }}</td>
+      <td>
+        <span *ngIf="p.id === selectedPrinterId" class="badge badge-green">Selected</span>
+        <button *ngIf="p.id !== selectedPrinterId" class="btn-sm" (click)="select(p.id)">Select</button>
+      </td>
+      <td class="actions">
+        <button class="btn-sm" (click)="openEdit(p)">Edit</button>
+        <button class="btn-sm btn-danger" (click)="remove(p.id)">Delete</button>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<p *ngIf="!loading && printers.length === 0" class="empty">No printers yet. Add one to get started.</p>
+
+<!-- Inline form -->
+<div class="card form-card" *ngIf="showForm">
+  <h3>{{ editTarget ? 'Edit printer' : 'Add printer' }}</h3>
+  <form (ngSubmit)="save()" #f="ngForm">
+    <div class="field">
+      <label>Name</label>
+      <input type="text" [(ngModel)]="form.name" name="name" required />
+    </div>
+    <div class="field">
+      <label>Average power (W)</label>
+      <input type="number" [(ngModel)]="form.averagePowerWatts" name="watts" min="0" required />
+    </div>
+    <div class="field">
+      <label>Hourly cost (base currency)</label>
+      <input type="number" [(ngModel)]="form.hourlyCostAmount" name="hourly" min="0" step="0.0001" required />
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn-primary" [disabled]="!f.valid">Save</button>
+      <button type="button" class="btn-sm" (click)="showForm = false">Cancel</button>
+    </div>
+  </form>
+</div>

@@ -1,0 +1,131 @@
+<div class="page-header">
+  <h1>Materials</h1>
+  <button class="btn-primary" (click)="openAdd()">+ Add spool</button>
+</div>
+
+<div class="error" *ngIf="error">{{ error }}</div>
+<div class="loading" *ngIf="loading">Loading…</div>
+
+<table *ngIf="!loading && materials.length > 0">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Color</th>
+      <th>Stock (kg)</th>
+      <th>Length (m)</th>
+      <th>Avg price/kg</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let m of materials" [class.low-stock]="m.amountKg < 0.1">
+      <td>{{ m.name }}</td>
+      <td>{{ filamentLabel(m.type) }}</td>
+      <td>{{ m.color }}</td>
+      <td>{{ m.amountKg | number:'1.3-3' }}</td>
+      <td>{{ m.estimatedLengthMeters | number:'1.0-0' }}</td>
+      <td>{{ m.averagePricePerKgMoney.amount | number:'1.2-4' }}</td>
+      <td class="actions">
+        <button class="btn-sm" (click)="openRestock(m)">Restock</button>
+        <button class="btn-sm" (click)="openConsume(m)">Consume</button>
+        <button class="btn-sm btn-danger" (click)="remove(m.id)">Delete</button>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<p *ngIf="!loading && materials.length === 0" class="empty">No materials yet. Add a spool to get started.</p>
+
+<!-- Add spool form -->
+<div class="card form-card" *ngIf="showAddForm">
+  <h3>Add spool</h3>
+  <form (ngSubmit)="addSpool()" #f="ngForm">
+    <div class="fields-row">
+      <div class="field">
+        <label>Name</label>
+        <input type="text" [(ngModel)]="addForm.name" name="name" required />
+      </div>
+      <div class="field">
+        <label>Color</label>
+        <input type="text" [(ngModel)]="addForm.color" name="color" />
+      </div>
+    </div>
+    <div class="fields-row">
+      <div class="field">
+        <label>Type</label>
+        <select [(ngModel)]="addForm.type" name="type">
+          <option *ngFor="let t of filamentTypes" [value]="t.value">{{ t.label }}</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Grade</label>
+        <input type="text" [(ngModel)]="addForm.grade" name="grade" placeholder="standard" />
+      </div>
+    </div>
+    <div class="fields-row">
+      <div class="field">
+        <label>Weight (kg)</label>
+        <input type="number" [(ngModel)]="addForm.amountKg" name="kg" min="0" step="0.001" required />
+      </div>
+      <div class="field">
+        <label>Estimated length (m)</label>
+        <input type="number" [(ngModel)]="addForm.estimatedLengthMeters" name="meters" min="0" required />
+      </div>
+      <div class="field">
+        <label>Total price paid</label>
+        <input type="number" [(ngModel)]="addForm.totalPrice" name="price" min="0" step="0.01" required />
+      </div>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn-primary" [disabled]="!f.valid">Save</button>
+      <button type="button" class="btn-sm" (click)="showAddForm = false">Cancel</button>
+    </div>
+  </form>
+</div>
+
+<!-- Restock form -->
+<div class="card form-card" *ngIf="restockTarget">
+  <h3>Restock — {{ restockTarget.name }}</h3>
+  <form (ngSubmit)="restock()" #rf="ngForm">
+    <div class="fields-row">
+      <div class="field">
+        <label>Add (kg)</label>
+        <input type="number" [(ngModel)]="restockForm.addKg" name="kg" min="0" step="0.001" required />
+      </div>
+      <div class="field">
+        <label>Add (meters)</label>
+        <input type="number" [(ngModel)]="restockForm.addMeters" name="m" min="0" required />
+      </div>
+      <div class="field">
+        <label>Total price paid</label>
+        <input type="number" [(ngModel)]="restockForm.addTotalPrice" name="price" min="0" step="0.01" required />
+      </div>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn-primary" [disabled]="!rf.valid">Restock</button>
+      <button type="button" class="btn-sm" (click)="restockTarget = null">Cancel</button>
+    </div>
+  </form>
+</div>
+
+<!-- Consume form -->
+<div class="card form-card" *ngIf="consumeTarget">
+  <h3>Consume — {{ consumeTarget.name }}</h3>
+  <form (ngSubmit)="consume()" #cf="ngForm">
+    <div class="fields-row">
+      <div class="field">
+        <label>Consume (kg)</label>
+        <input type="number" [(ngModel)]="consumeForm.kg" name="kg" min="0" step="0.001" required />
+      </div>
+      <div class="field">
+        <label>Consume (meters)</label>
+        <input type="number" [(ngModel)]="consumeForm.meters" name="m" min="0" required />
+      </div>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn-primary" [disabled]="!cf.valid">Consume</button>
+      <button type="button" class="btn-sm" (click)="consumeTarget = null">Cancel</button>
+    </div>
+  </form>
+</div>

@@ -1,0 +1,74 @@
+<div class="page-header">
+  <h1>User management</h1>
+  <button class="btn-primary" (click)="showCreateForm = !showCreateForm">+ Add user</button>
+</div>
+
+<div class="error" *ngIf="error">{{ error }}</div>
+<div class="loading" *ngIf="loading">Loading…</div>
+
+<table *ngIf="!loading && users.length > 0">
+  <thead>
+    <tr>
+      <th>Username</th>
+      <th>Roles</th>
+      <th>Status</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let u of users">
+      <td>{{ u.username }}</td>
+      <td>
+        <span class="badge badge-blue" *ngFor="let r of u.roles">{{ r }}</span>
+      </td>
+      <td>
+        <span class="badge badge-gray" *ngIf="u.mustChangePassword">Must change password</span>
+        <span class="badge badge-green" *ngIf="!u.mustChangePassword">Active</span>
+      </td>
+      <td class="actions">
+        <button class="btn-sm" (click)="openReset(u)">Reset password</button>
+        <button class="btn-sm btn-danger" (click)="delete(u)">Delete</button>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- Create user form -->
+<div class="card form-card" *ngIf="showCreateForm">
+  <h3>Add user</h3>
+  <p class="onboarding-hint">
+    The user will be required to set a new password on first login.
+  </p>
+  <form (ngSubmit)="create()" #cf="ngForm">
+    <div class="fields-row">
+      <div class="field">
+        <label>Username</label>
+        <input type="text" [(ngModel)]="createForm.username" name="username" required autocomplete="off" />
+      </div>
+      <div class="field">
+        <label>Temporary password</label>
+        <input type="text" [(ngModel)]="createForm.tempPassword" name="temp" required minlength="6" autocomplete="off" />
+      </div>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn-primary" [disabled]="!cf.valid">Create user</button>
+      <button type="button" class="btn-sm" (click)="showCreateForm = false">Cancel</button>
+    </div>
+  </form>
+</div>
+
+<!-- Reset password form -->
+<div class="card form-card" *ngIf="resetTarget">
+  <h3>Reset password — {{ resetTarget.username }}</h3>
+  <p class="onboarding-hint">The user will be required to set a new password on next login.</p>
+  <form (ngSubmit)="doReset()" #rf="ngForm">
+    <div class="field" style="max-width:280px">
+      <label>New temporary password</label>
+      <input type="text" [(ngModel)]="resetPassword" name="rp" required minlength="6" autocomplete="off" />
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn-primary" [disabled]="!rf.valid">Reset</button>
+      <button type="button" class="btn-sm" (click)="resetTarget = null">Cancel</button>
+    </div>
+  </form>
+</div>

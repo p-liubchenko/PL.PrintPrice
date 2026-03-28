@@ -1,0 +1,40 @@
+.login-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+.login-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 2.5rem 2rem;
+  width: 100%;
+  max-width: 360px;
+}
+
+.login-title {
+  font-size: 1.1rem;
+  color: var(--accent);
+  margin: 0 0 0.25rem;
+  font-weight: 600;
+}
+
+h2 {
+  margin: 0 0 1.5rem;
+  font-size: 1.4rem;
+}
+
+.toggle-link {
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.toggle-link a {
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: underline;
+}
