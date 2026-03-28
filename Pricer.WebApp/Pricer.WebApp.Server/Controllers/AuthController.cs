@@ -115,6 +115,18 @@ public sealed class AuthController(
 		};
 		claims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r)));
 
+		// Collect all permissions from every role the user belongs to
+		var permissions = new HashSet<string>(StringComparer.Ordinal);
+		foreach (var roleName in roles)
+		{
+			var role = await roleManager.FindByNameAsync(roleName);
+			if (role is null) continue;
+			var roleClaims = await roleManager.GetClaimsAsync(role);
+			foreach (var c in roleClaims.Where(c => c.Type == "permission"))
+				permissions.Add(c.Value);
+		}
+		claims.AddRange(permissions.Select(p => new Claim("permission", p)));
+
 		var mustChange = userClaims.FirstOrDefault(c => c.Type == MustChangePasswordClaim);
 		if (mustChange is not null) claims.Add(mustChange);
 

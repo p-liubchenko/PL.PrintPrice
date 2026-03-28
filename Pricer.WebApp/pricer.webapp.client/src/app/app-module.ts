@@ -12,6 +12,7 @@ import { AuthInterceptor } from './interceptors/auth.interceptor';
 import { LoginComponent } from './login/login.component';
 import { OnboardingComponent } from './onboarding/onboarding.component';
 import { ChangePasswordComponent } from './change-password/change-password.component';
+import { ProfileComponent } from './profile/profile.component';
 
 import { DashboardComponent } from './pages/dashboard/dashboard.component';
 import { PrintersComponent } from './pages/printers/printers.component';
@@ -20,6 +21,7 @@ import { CurrenciesComponent } from './pages/currencies/currencies.component';
 import { SettingsComponent } from './pages/settings/settings.component';
 import { TransactionsComponent } from './pages/transactions/transactions.component';
 import { UsersComponent } from './pages/users/users.component';
+import { RolesComponent } from './pages/roles/roles.component';
 
 function initApp(auth: AuthService): () => Promise<void> {
   return () => auth.checkSetupStatus();
@@ -38,6 +40,8 @@ function initApp(auth: AuthService): () => Promise<void> {
     SettingsComponent,
     TransactionsComponent,
     UsersComponent,
+    RolesComponent,
+    ProfileComponent,
   ],
   imports: [
     BrowserModule,

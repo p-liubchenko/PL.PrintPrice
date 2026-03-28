@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CurrenciesService } from '../../services/currencies.service';
 import { SettingsService } from '../../services/settings.service';
 import { Currency } from '../../models';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-currencies',
@@ -21,6 +22,7 @@ export class CurrenciesComponent implements OnInit {
   constructor(
     private currenciesService: CurrenciesService,
     private settingsService: SettingsService,
+    public auth: AuthService,
   ) {}
 
   ngOnInit(): void { this.load(); }

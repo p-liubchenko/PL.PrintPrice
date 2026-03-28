@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 using Pricer.Models;
+using Pricer.WebApp.Server.Authorization;
 
 namespace Pricer.WebApp.Server.Controllers;
 
@@ -22,14 +23,17 @@ public sealed class TransactionsController(
 		decimal ExtraFixedCost);
 
 	[HttpGet("prints")]
+	[Authorize(Policy = Permissions.TransactionsView)]
 	public async Task<IActionResult> GetPrints(CancellationToken ct)
 		=> Ok(await transactions.GetPrintTransactionsAsync(ct));
 
 	[HttpGet("stock")]
+	[Authorize(Policy = Permissions.TransactionsView)]
 	public async Task<IActionResult> GetStock(CancellationToken ct)
 		=> Ok(await transactions.GetStockTransactionsAsync(ct));
 
 	[HttpPost("record-print")]
+	[Authorize(Policy = Permissions.TransactionsManage)]
 	public async Task<IActionResult> RecordPrint([FromBody] RecordPrintRequest req, CancellationToken ct)
 	{
 		var allMaterials = await materials.GetAllAsync(ct);
@@ -66,6 +70,7 @@ public sealed class TransactionsController(
 	}
 
 	[HttpPost("prints/{id:guid}/revert")]
+	[Authorize(Policy = Permissions.TransactionsManage)]
 	public async Task<IActionResult> RevertPrint(Guid id, CancellationToken ct)
 	{
 		var (ok, error) = await transactions.RevertPrintAsync(id, ct);
@@ -73,6 +78,7 @@ public sealed class TransactionsController(
 	}
 
 	[HttpDelete("prints/{id:guid}")]
+	[Authorize(Policy = Permissions.TransactionsDelete)]
 	public async Task<IActionResult> DeletePrint(Guid id, CancellationToken ct)
 	{
 		var (ok, error) = await transactions.DeletePrintAsync(id, ct);

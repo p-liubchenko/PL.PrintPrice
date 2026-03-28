@@ -3,6 +3,7 @@ import { Observable } from 'rxjs';
 import { PrintersService } from '../../services/printers.service';
 import { Printer } from '../../models';
 import { SettingsService } from '../../services/settings.service';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-printers',
@@ -22,6 +23,7 @@ export class PrintersComponent implements OnInit {
   constructor(
     private printersService: PrintersService,
     private settingsService: SettingsService,
+    public auth: AuthService,
   ) {}
 
   ngOnInit(): void { this.load(); }

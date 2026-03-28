@@ -1,0 +1,48 @@
+<div class="page-header">
+  <h1>Profile</h1>
+</div>
+
+<!-- Account info -->
+<div class="card profile-card">
+  <div class="profile-row">
+    <span class="profile-label">Username</span>
+    <span class="profile-value">{{ username }}</span>
+  </div>
+  <div class="profile-row">
+    <span class="profile-label">Permissions</span>
+    <span class="profile-value permissions-list">
+      <span class="badge badge-gray" *ngFor="let p of permissions">{{ p }}</span>
+      <span class="text-muted" *ngIf="permissions.length === 0">None</span>
+    </span>
+  </div>
+</div>
+
+<!-- Change password -->
+<div class="card form-card">
+  <h3>Change password</h3>
+  <div class="error"   *ngIf="error">{{ error }}</div>
+  <div class="success" *ngIf="success">{{ success }}</div>
+
+  <form (ngSubmit)="changePassword()" #pf="ngForm">
+    <div class="field" style="max-width:320px">
+      <label>Current password</label>
+      <input type="password" [(ngModel)]="currentPassword" name="cur" required autocomplete="current-password" />
+    </div>
+    <div class="field" style="max-width:320px">
+      <label>New password</label>
+      <input type="password" [(ngModel)]="newPassword" name="new" required minlength="6" autocomplete="new-password" />
+    </div>
+    <div class="field" style="max-width:320px">
+      <label>Confirm new password</label>
+      <input type="password" [(ngModel)]="confirmPassword" name="confirm" required autocomplete="new-password"
+             [class.input-error]="passwordMismatch" />
+      <span class="field-error" *ngIf="passwordMismatch">Passwords do not match.</span>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn-primary"
+              [disabled]="!pf.valid || passwordMismatch || saving">
+        {{ saving ? 'Saving…' : 'Change password' }}
+      </button>
+    </div>
+  </form>
+</div>

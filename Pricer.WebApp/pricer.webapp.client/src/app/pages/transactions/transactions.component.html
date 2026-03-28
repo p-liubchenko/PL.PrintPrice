@@ -52,7 +52,7 @@
       </td>
       <td class="actions">
         <button *ngIf="p.status === PrintTransactionStatus.Completed" class="btn-sm" (click)="revert(p.id)">Revert</button>
-        <button class="btn-sm btn-danger" (click)="delete(p.id)">Delete</button>
+        <button class="btn-sm btn-danger" *ngIf="auth.hasPermission('transactions.delete')" (click)="delete(p.id)">Delete</button>
       </td>
     </tr>
   </tbody>

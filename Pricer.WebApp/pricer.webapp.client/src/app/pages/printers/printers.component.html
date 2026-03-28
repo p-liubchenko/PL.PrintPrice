@@ -27,7 +27,7 @@
       </td>
       <td class="actions">
         <button class="btn-sm" (click)="openEdit(p)">Edit</button>
-        <button class="btn-sm btn-danger" (click)="remove(p.id)">Delete</button>
+        <button class="btn-sm btn-danger" *ngIf="auth.hasPermission('printers.delete')" (click)="remove(p.id)">Delete</button>
       </td>
     </tr>
   </tbody>

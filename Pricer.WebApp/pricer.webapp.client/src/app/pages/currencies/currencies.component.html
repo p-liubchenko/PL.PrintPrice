@@ -27,7 +27,7 @@
       </td>
       <td class="actions">
         <button class="btn-sm" (click)="openEdit(c)">Edit</button>
-        <button class="btn-sm btn-danger" (click)="remove(c.id)">Delete</button>
+        <button class="btn-sm btn-danger" *ngIf="auth.hasPermission('currencies.delete')" (click)="remove(c.id)">Delete</button>
       </td>
     </tr>
   </tbody>

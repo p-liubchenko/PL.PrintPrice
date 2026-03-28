@@ -3,6 +3,7 @@ import { MaterialsService } from '../../services/materials.service';
 import { SettingsService } from '../../services/settings.service';
 import { CurrenciesService } from '../../services/currencies.service';
 import { FilamentMaterial, FilamentType, FILAMENT_TYPE_LABELS } from '../../models';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-materials',
@@ -33,6 +34,7 @@ export class MaterialsComponent implements OnInit {
     private materialsService: MaterialsService,
     private settingsService: SettingsService,
     private currenciesService: CurrenciesService,
+    public auth: AuthService,
   ) {}
 
   ngOnInit(): void { this.load(); }

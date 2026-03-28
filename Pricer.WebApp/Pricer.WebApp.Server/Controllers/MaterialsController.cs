@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 using Pricer.Models;
+using Pricer.WebApp.Server.Authorization;
 
 namespace Pricer.WebApp.Server.Controllers;
 
@@ -17,10 +18,12 @@ public sealed class MaterialsController(
 	public sealed record ConsumeRequest(decimal Kg, decimal Meters);
 
 	[HttpGet]
+	[Authorize(Policy = Permissions.MaterialsView)]
 	public async Task<IActionResult> GetAll(CancellationToken ct)
 		=> Ok(await materials.GetAllAsync(ct));
 
 	[HttpPost("add-spool")]
+	[Authorize(Policy = Permissions.MaterialsManage)]
 	public async Task<IActionResult> AddSpool([FromBody] AddSpoolRequest req, CancellationToken ct)
 	{
 		var allCurrencies = await currencies.GetAllAsync(ct);
@@ -30,6 +33,7 @@ public sealed class MaterialsController(
 	}
 
 	[HttpPut("{id:guid}")]
+	[Authorize(Policy = Permissions.MaterialsManage)]
 	public async Task<IActionResult> Upsert(Guid id, [FromBody] FilamentMaterial material, CancellationToken ct)
 	{
 		material.Id = id;
@@ -38,6 +42,7 @@ public sealed class MaterialsController(
 	}
 
 	[HttpPost("{id:guid}/restock")]
+	[Authorize(Policy = Permissions.MaterialsManage)]
 	public async Task<IActionResult> Restock(Guid id, [FromBody] RestockRequest req, CancellationToken ct)
 	{
 		var allCurrencies = await currencies.GetAllAsync(ct);
@@ -46,6 +51,7 @@ public sealed class MaterialsController(
 	}
 
 	[HttpPost("{id:guid}/consume")]
+	[Authorize(Policy = Permissions.MaterialsManage)]
 	public async Task<IActionResult> Consume(Guid id, [FromBody] ConsumeRequest req, CancellationToken ct)
 	{
 		var (ok, error) = await materials.ConsumeAsync(id, req.Kg, req.Meters, ct);
@@ -53,6 +59,7 @@ public sealed class MaterialsController(
 	}
 
 	[HttpDelete("{id:guid}")]
+	[Authorize(Policy = Permissions.MaterialsDelete)]
 	public async Task<IActionResult> Remove(Guid id, CancellationToken ct)
 	{
 		var (ok, error) = await materials.RemoveAsync(id, ct);

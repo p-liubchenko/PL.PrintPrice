@@ -1,12 +1,15 @@
+using System.Security.Claims;
 using System.Text;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 
 using Pricer.Application;
 using Pricer.DAL;
 using Pricer.DAL.Security;
+using Pricer.WebApp.Server.Authorization;
 
 namespace Pricer.WebApp.Server;
 
@@ -19,7 +22,7 @@ public class Program
 		// ── Identity + Security DB ───────────────────────────────────────────
 		builder.Services.AddSecurityDataAccess(builder.Configuration);
 
-		builder.Services.AddIdentity<IdentityUser, IdentityRole>(opt =>
+		builder.Services.AddIdentityCore<IdentityUser>(opt =>
 			{
 				opt.Password.RequireDigit = false;
 				opt.Password.RequireLowercase = false;
@@ -27,6 +30,7 @@ public class Program
 				opt.Password.RequireNonAlphanumeric = false;
 				opt.Password.RequiredLength = 6;
 			})
+			.AddRoles<IdentityRole>()
 			.AddEntityFrameworkStores<SecurityDbContext>()
 			.AddDefaultTokenProviders();
 
@@ -43,6 +47,7 @@ public class Program
 			})
 			.AddJwtBearer(opt =>
 			{
+				opt.MapInboundClaims = false;
 				opt.TokenValidationParameters = new TokenValidationParameters
 				{
 					ValidateIssuer = true,
@@ -55,7 +60,14 @@ public class Program
 				};
 			});
 
-		builder.Services.AddAuthorization();
+		// ── Permission-based authorization ───────────────────────────────────
+		builder.Services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHandler>();
+		builder.Services.AddAuthorization(opt =>
+		{
+			foreach (var permission in Permissions.All)
+				opt.AddPolicy(permission, policy =>
+					policy.AddRequirements(new PermissionRequirement(permission)));
+		});
 
 		// ── Pricer domain services ───────────────────────────────────────────
 		builder.Services.AddPricer(builder.Configuration);
@@ -70,6 +82,13 @@ public class Program
 		await app.Services.InitializeSecuritySchemaAsync();
 		app.Services.ApplyPendingMigrations();
 		await app.Services.MigrateDataIfNeededAsync(builder.Configuration);
+
+		// ── Seed: Administrator role + all permissions ────────────────────────
+		using (var scope = app.Services.CreateScope())
+		{
+			var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+			await SeedAdminRoleAsync(roleManager);
+		}
 
 		// ── Seed default app data ────────────────────────────────────────────
 		using (var scope = app.Services.CreateScope())
@@ -94,5 +113,26 @@ public class Program
 		app.MapFallbackToFile("/index.html");
 
 		await app.RunAsync();
+	}
+
+	/// <summary>
+	/// Ensures the Administrator role exists and always has every defined permission.
+	/// Safe to run on every startup — missing permissions are added, none are removed.
+	/// </summary>
+	private static async Task SeedAdminRoleAsync(RoleManager<IdentityRole> roleManager)
+	{
+		const string adminRole = "Administrator";
+
+		if (!await roleManager.RoleExistsAsync(adminRole))
+			await roleManager.CreateAsync(new IdentityRole(adminRole));
+
+		var role = await roleManager.FindByNameAsync(adminRole);
+		var existing = await roleManager.GetClaimsAsync(role!);
+
+		foreach (var p in Permissions.All)
+		{
+			if (!existing.Any(c => c.Type == "permission" && c.Value == p))
+				await roleManager.AddClaimAsync(role!, new Claim("permission", p));
+		}
 	}
 }

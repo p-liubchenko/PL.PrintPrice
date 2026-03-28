@@ -1,0 +1,43 @@
+.profile-card {
+  margin-bottom: 1.5rem;
+}
+
+.profile-row {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.profile-row:last-child {
+  border-bottom: none;
+}
+
+.profile-label {
+  min-width: 120px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.profile-value {
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.permissions-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.input-error {
+  border-color: var(--danger) !important;
+}
+
+.field-error {
+  font-size: 0.78rem;
+  color: var(--danger);
+  margin-top: 0.2rem;
+  display: block;
+}

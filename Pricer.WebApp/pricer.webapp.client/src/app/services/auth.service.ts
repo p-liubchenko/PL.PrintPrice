@@ -91,6 +91,16 @@ export class AuthService {
       (Array.isArray(role) && role.includes('Administrator'));
   }
 
+  getPermissions(): string[] {
+    const p = this.getPayloadClaim('permission');
+    if (!p) return [];
+    return Array.isArray(p) ? p : [p];
+  }
+
+  hasPermission(permission: string): boolean {
+    return this.getPermissions().includes(permission);
+  }
+
   // ── Internals ─────────────────────────────────────────────────────────
 
   private storeToken(res: AuthResponse): void {

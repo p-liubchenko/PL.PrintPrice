@@ -29,7 +29,7 @@
       <td class="actions">
         <button class="btn-sm" (click)="openRestock(m)">Restock</button>
         <button class="btn-sm" (click)="openConsume(m)">Consume</button>
-        <button class="btn-sm btn-danger" (click)="remove(m.id)">Delete</button>
+        <button class="btn-sm btn-danger" *ngIf="auth.hasPermission('materials.delete')" (click)="remove(m.id)">Delete</button>
       </td>
     </tr>
   </tbody>

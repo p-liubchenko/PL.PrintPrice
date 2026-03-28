@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 using Pricer.Models;
+using Pricer.WebApp.Server.Authorization;
 
 namespace Pricer.WebApp.Server.Controllers;
 
@@ -11,10 +12,12 @@ namespace Pricer.WebApp.Server.Controllers;
 public sealed class CurrenciesController(ICurrenciesService currencies) : ControllerBase
 {
 	[HttpGet]
+	[Authorize(Policy = Permissions.CurrenciesView)]
 	public async Task<IActionResult> GetAll(CancellationToken ct)
 		=> Ok(await currencies.GetAllAsync(ct));
 
 	[HttpPost]
+	[Authorize(Policy = Permissions.CurrenciesManage)]
 	public async Task<IActionResult> Add([FromBody] Currency currency, CancellationToken ct)
 	{
 		var (ok, error) = await currencies.AddAsync(currency, ct);
@@ -22,6 +25,7 @@ public sealed class CurrenciesController(ICurrenciesService currencies) : Contro
 	}
 
 	[HttpPut("{id:guid}")]
+	[Authorize(Policy = Permissions.CurrenciesManage)]
 	public async Task<IActionResult> Upsert(Guid id, [FromBody] Currency currency, CancellationToken ct)
 	{
 		currency.Id = id;
@@ -30,6 +34,7 @@ public sealed class CurrenciesController(ICurrenciesService currencies) : Contro
 	}
 
 	[HttpPost("{id:guid}/set-base")]
+	[Authorize(Policy = Permissions.CurrenciesManage)]
 	public async Task<IActionResult> SetBase(Guid id, CancellationToken ct)
 	{
 		var (ok, error) = await currencies.SetBaseCurrencyAsync(id, ct);
@@ -37,6 +42,7 @@ public sealed class CurrenciesController(ICurrenciesService currencies) : Contro
 	}
 
 	[HttpPost("{id:guid}/set-operating")]
+	[Authorize(Policy = Permissions.CurrenciesManage)]
 	public async Task<IActionResult> SetOperating(Guid id, CancellationToken ct)
 	{
 		var (ok, error) = await currencies.SetOperatingCurrencyAsync(id, ct);
@@ -44,6 +50,7 @@ public sealed class CurrenciesController(ICurrenciesService currencies) : Contro
 	}
 
 	[HttpDelete("{id:guid}")]
+	[Authorize(Policy = Permissions.CurrenciesDelete)]
 	public async Task<IActionResult> Remove(Guid id, CancellationToken ct)
 	{
 		var (ok, error) = await currencies.RemoveAsync(id, ct);

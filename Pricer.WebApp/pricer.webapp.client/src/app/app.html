@@ -3,15 +3,16 @@
     <nav class="sidebar">
       <div class="sidebar-brand">PL.PrintPrice</div>
       <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">Dashboard</a>
-      <a routerLink="/printers" routerLinkActive="active">Printers</a>
-      <a routerLink="/materials" routerLinkActive="active">Materials</a>
-      <a routerLink="/currencies" routerLinkActive="active">Currencies</a>
-      <a routerLink="/transactions" routerLinkActive="active">Transactions</a>
-      <a routerLink="/settings" routerLinkActive="active">Settings</a>
-      <a *ngIf="auth.isAdmin()" routerLink="/users" routerLinkActive="active">Users</a>
+      <a *ngIf="auth.hasPermission('printers.view')"      routerLink="/printers"     routerLinkActive="active">Printers</a>
+      <a *ngIf="auth.hasPermission('materials.view')"     routerLink="/materials"    routerLinkActive="active">Materials</a>
+      <a *ngIf="auth.hasPermission('currencies.view')"    routerLink="/currencies"   routerLinkActive="active">Currencies</a>
+      <a *ngIf="auth.hasPermission('transactions.view')"  routerLink="/transactions" routerLinkActive="active">Transactions</a>
+      <a *ngIf="auth.hasPermission('settings.view')"      routerLink="/settings"     routerLinkActive="active">Settings</a>
+      <a *ngIf="auth.hasPermission('users.manage')"       routerLink="/users"        routerLinkActive="active">Users</a>
+      <a *ngIf="auth.hasPermission('roles.manage')"       routerLink="/roles"        routerLinkActive="active">Roles</a>
       <div class="sidebar-spacer"></div>
       <div class="sidebar-user">{{ auth.getUsername() }}</div>
-      <a routerLink="/change-password" class="sidebar-link-sm">Change password</a>
+      <a routerLink="/profile" class="sidebar-link-sm" routerLinkActive="active">Profile</a>
       <button class="btn-logout" (click)="logout()">Sign out</button>
     </nav>
     <main class="content">

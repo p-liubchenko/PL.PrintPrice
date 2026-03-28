@@ -1,0 +1,93 @@
+<div class="page-header">
+  <h1>Roles</h1>
+  <button class="btn-primary" (click)="openCreate()">+ New role</button>
+</div>
+
+<div class="error"   *ngIf="error">{{ error }}</div>
+<div class="success" *ngIf="success">{{ success }}</div>
+<div class="loading" *ngIf="loading">Loading…</div>
+
+<!-- Role list -->
+<table *ngIf="!loading && roles.length > 0">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Permissions</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let role of roles">
+      <td>
+        {{ role.name }}
+        <span class="badge badge-blue" *ngIf="role.isSystem">system</span>
+      </td>
+      <td class="permissions-cell">
+        <span class="badge badge-gray" *ngFor="let p of role.permissions">{{ p }}</span>
+        <span class="text-muted" *ngIf="role.permissions.length === 0">no permissions</span>
+      </td>
+      <td class="actions">
+        <button class="btn-sm" (click)="openEdit(role)" [disabled]="role.isSystem">Edit</button>
+        <button class="btn-sm btn-danger" *ngIf="auth.hasPermission('roles.delete')" (click)="delete(role)" [disabled]="role.isSystem">Delete</button>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<p class="text-muted" *ngIf="!loading && roles.length === 0">No roles defined yet.</p>
+
+<!-- Create form -->
+<div class="card form-card" *ngIf="showCreateForm">
+  <h3>New role</h3>
+  <form (ngSubmit)="create()" #cf="ngForm">
+    <div class="field" style="max-width: 300px">
+      <label>Role name</label>
+      <input type="text" [(ngModel)]="createName" name="name" required autocomplete="off" />
+    </div>
+
+    <div class="permissions-picker">
+      <label class="picker-label">Permissions</label>
+      <div class="permission-groups">
+        <div class="permission-group" *ngFor="let group of permissionGroups">
+          <div class="group-title">{{ group.prefix }}</div>
+          <label class="perm-check" *ngFor="let p of group.permissions">
+            <input type="checkbox"
+                   [checked]="createPermissions.has(p)"
+                   (change)="toggleCreatePermission(p)" />
+            {{ p }}
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn-primary" [disabled]="!cf.valid">Create</button>
+      <button type="button" class="btn-sm" (click)="showCreateForm = false">Cancel</button>
+    </div>
+  </form>
+</div>
+
+<!-- Edit form -->
+<div class="card form-card" *ngIf="editingRole">
+  <h3>Edit — {{ editingRole.name }}</h3>
+
+  <div class="permissions-picker">
+    <label class="picker-label">Permissions</label>
+    <div class="permission-groups">
+      <div class="permission-group" *ngFor="let group of permissionGroups">
+        <div class="group-title">{{ group.prefix }}</div>
+        <label class="perm-check" *ngFor="let p of group.permissions">
+          <input type="checkbox"
+                 [checked]="editPermissions.has(p)"
+                 (change)="toggleEditPermission(p)" />
+          {{ p }}
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-actions">
+    <button type="button" class="btn-primary" (click)="saveEdit()">Save</button>
+    <button type="button" class="btn-sm" (click)="editingRole = null">Cancel</button>
+  </div>
+</div>

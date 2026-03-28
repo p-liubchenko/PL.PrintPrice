@@ -30,4 +30,16 @@ export class UsersService {
   delete(id: string): Observable<void> {
     return this.http.delete<void>(`${this.base}/${id}`);
   }
+
+  getAvailableRoles(): Observable<string[]> {
+    return this.http.get<string[]>(`${this.base}/roles`);
+  }
+
+  assignRole(userId: string, roleName: string): Observable<void> {
+    return this.http.post<void>(`${this.base}/${userId}/roles/${roleName}`, {});
+  }
+
+  removeRole(userId: string, roleName: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/${userId}/roles/${roleName}`);
+  }
 }

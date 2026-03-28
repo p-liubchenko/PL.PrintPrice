@@ -7,6 +7,7 @@ import {
   PrintTransaction, StockTransaction, FilamentMaterial, AppSettings,
   PrintTransactionStatus, STOCK_TRANSACTION_TYPE_LABELS, StockTransactionType,
 } from '../../models';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-transactions',
@@ -33,6 +34,7 @@ export class TransactionsComponent implements OnInit {
     private transactionsService: TransactionsService,
     private materialsService: MaterialsService,
     private settingsService: SettingsService,
+    public auth: AuthService,
   ) {}
 
   ngOnInit(): void { this.load(); }
