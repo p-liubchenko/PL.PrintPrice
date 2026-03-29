@@ -1,7 +1,10 @@
 <ng-container *ngIf="auth.isLoggedIn(); else noNav">
   <div class="shell">
     <nav class="sidebar">
-      <div class="sidebar-brand">Spooly</div>
+      <div class="sidebar-brand">
+        <img src="logo.svg" class="brand-logo" alt="Spooly">
+        Spooly
+      </div>
       <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">Dashboard</a>
       <a *ngIf="auth.hasPermission('printers.view')"      routerLink="/printers"     routerLinkActive="active">Printers</a>
       <a *ngIf="auth.hasPermission('materials.view')"     routerLink="/materials"    routerLinkActive="active">Materials</a>

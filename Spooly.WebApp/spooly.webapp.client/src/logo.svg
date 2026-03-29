@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Outer flange -->
+  <circle cx="50" cy="50" r="48" fill="#161b22" stroke="#58a6ff" stroke-width="3.5"/>
+
+  <!-- Wound filament layers — outer -->
+  <circle cx="50" cy="50" r="38" fill="none" stroke="#58a6ff" stroke-width="5.5"
+    stroke-dasharray="23 9" stroke-linecap="round" transform="rotate(-20 50 50)" opacity="0.9"/>
+
+  <!-- Wound filament layers — middle -->
+  <circle cx="50" cy="50" r="29" fill="none" stroke="#3fb950" stroke-width="5"
+    stroke-dasharray="18 8" stroke-linecap="round" transform="rotate(10 50 50)" opacity="0.85"/>
+
+  <!-- Wound filament layers — inner -->
+  <circle cx="50" cy="50" r="20" fill="none" stroke="#58a6ff" stroke-width="4.5"
+    stroke-dasharray="13 7" stroke-linecap="round" transform="rotate(-5 50 50)" opacity="0.75"/>
+
+  <!-- Hub -->
+  <circle cx="50" cy="50" r="11" fill="#0f1117" stroke="#30363d" stroke-width="2"/>
+
+  <!-- Axle -->
+  <circle cx="50" cy="50" r="4.5" fill="#58a6ff" opacity="0.9"/>
+</svg>

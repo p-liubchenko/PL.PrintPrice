@@ -1,0 +1,30 @@
+services:
+  webapp:
+    build:
+      context: .
+      dockerfile: Spooly.WebApp/Spooly.WebApp.Server/Dockerfile
+    container_name: spooly-webapp
+    ports:
+      - "8080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: Server=db,1433;Database=spooly;User Id=sa;Password=Your_strong_password123!;Encrypt=False;TrustServerCertificate=True
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: spooly-db
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: Your_strong_password123!
+    ports:
+      - "1433:1433"
+    volumes:
+      - spooly_sqldata:/var/opt/mssql
+    restart: unless-stopped
+
+volumes:
+  spooly_sqldata:

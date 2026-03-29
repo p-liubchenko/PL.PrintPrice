@@ -124,42 +124,32 @@ Password reset for existing users is also available from the Users page (generat
 
 ## Docker
 
+### Build from source
+
 A production image is built from the repo root using the multi-stage `Dockerfile`:
 
 ```pwsh
-docker build -t pricer-web -f Pricer.WebApp/Pricer.WebApp.Server/Dockerfile .
+docker build -t spooly -f Spooly.WebApp/Spooly.WebApp.Server/Dockerfile .
 ```
 
-Run with File mode (data mounted from the host):
+[`build-compose.yaml`](build-compose.yaml) builds the image and starts it together with a local SQL Server container — useful for testing the production image locally without pushing to a registry:
 
-```pwsh
-docker run -d \
-  -p 8080:8080 \
-  -v /host/path/pricer-data:/app/data \
-  -e DataAccess__FilePath=/app/data/data.json \
-  -e DataAccess__SecurityFilePath=/app/data/security.db \
-  -e Jwt__Key=your-secret-key-at-least-32-characters-long \
-  pricer-web
-```
-
-Run with SQL Server:
-
-```pwsh
-docker run -d \
-  -p 8080:8080 \
-  -e DataAccess__Mode=Mssql \
-  -e ConnectionStrings__DefaultConnection="Server=db;Database=Pricer;..." \
-  -e Jwt__Key=your-secret-key-at-least-32-characters-long \
-  pricer-web
+```sh
+docker compose -f build-compose.yaml up --build
 ```
 
 ### Pre-built image (GitHub Container Registry)
 
-Every push to `master` publishes `ghcr.io/<owner>/pl.printprice:latest`. Tagged releases also publish `:<version>` (e.g. `:1.2.3`) and `:<major>.<minor>` (e.g. `:1.2`).
+Every push to `master` publishes `ghcr.io/p-liubchenko/pl.spooly:latest`. Tagged releases also publish `:<version>` (e.g. `:1.2.3`) and `:<major>.<minor>` (e.g. `:1.2`).
 
-```pwsh
-docker pull ghcr.io/<owner>/pl.printprice:latest
-```
+See the [README](README.md#deployment-options) for ready-to-use compose and Kubernetes manifests:
+
+| File | Mode | Notes |
+|------|------|-------|
+| [`local-public-compose.yaml`](local-public-compose.yaml) | File | Personal / homelab, zero database |
+| [`public-compose.yaml`](public-compose.yaml) | MSSQL | Production, includes SQL Server container |
+| [`example-k8s.yaml`](example-k8s.yaml) | MSSQL | Kubernetes — Secret, ConfigMap, Deployment, Service, Ingress |
+| [`build-compose.yaml`](build-compose.yaml) | MSSQL | Builds image from source + SQL Server (dev/testing) |
 
 ## CI
 

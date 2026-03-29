@@ -1,0 +1,16 @@
+services:
+  webapp:
+    image: ghcr.io/p-liubchenko/pl.spooly:latest
+    container_name: spooly-webapp-local
+    ports:
+      - "8080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      DataAccess__Mode: File
+      DataAccess__FilePath: /app/data/data.json
+      DataAccess__SecurityFilePath: /app/data/security.db
+      Jwt__Key: change-me-to-something-32-chars-or-longer
+    volumes:
+      - ./spooly-data:/app/data
+    restart: unless-stopped

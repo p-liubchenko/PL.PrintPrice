@@ -1,105 +1,150 @@
-# Pricer
+<div align="center">
+  <img src="Spooly.WebApp/spooly.webapp.client/src/logo.svg" alt="Spooly" width="80" height="80"/>
 
-CLI tool for managing 3D-printing costs. A browser-based web UI is also available — see [web-README.md](web-README.md). Track filament spools (purchase, restock, consumption), printers with hourly overhead and power draw, currencies with exchange rates, and print transactions. Calculates material cost, electricity cost, and printer wear for any print job.
+  # Spooly
 
-Supports two data backends — a local JSON file (zero setup) and SQL Server — and migrates automatically when you switch between them.
+  **Know exactly what every print costs.**
 
-## Prerequisites
+  Spooly tracks your filament inventory, printer overhead, and electricity use so you always have an accurate cost breakdown for every job — no spreadsheets needed.
 
-- .NET SDK `10.0`
+  [Get started with Docker](#quick-start) · [Developer docs](DEVELOPER.md) · [Web app docs](WEB-DEVELOPER.md)
+</div>
 
-## Run
+---
 
-```pwsh
-cd .\Pricer.Cli
-dotnet run
+## What Spooly does
+
+3D printing costs add up across filament, electricity, and printer wear — and they're surprisingly hard to track. Spooly keeps everything in one place:
+
+- **Log a print** in seconds: enter the duration and filament used, get a full cost breakdown instantly.
+- **Manage your filament warehouse**: add spools, restock, and watch stock levels update automatically as you print.
+- **Account for every expense**: electricity draw, printer hourly overhead, and material cost are calculated together.
+- **Multi-currency support**: set a base currency and operating currency with custom exchange rates.
+- **See the big picture**: the dashboard shows filament flow and stock levels over the last 30 days with live charts.
+
+---
+
+## Features at a glance
+
+| Area | What you can do |
+|------|----------------|
+| **Dashboard** | Stats overview, 30-day filament flow chart (candlestick), 30-day stock level chart (line) |
+| **Printers** | Add printers with wattage and hourly overhead rate; select the active printer |
+| **Materials** | Add spools by filament type, restock, track consumption per print |
+| **Transactions** | Record prints (auto-deducts stock), view cost breakdown, revert or delete |
+| **Quick Record** | One-click floating button to log a print from anywhere in the app |
+| **Currencies** | Define currencies with exchange rates; set base and operating currency |
+| **Users & Roles** | Role-based access control; administrator-managed accounts with forced password change on first login |
+| **Settings** | Select active printer, operating currency, and other defaults |
+
+---
+
+## Quick start
+
+The easiest way to run Spooly is with Docker Compose. Copy the file below, set a JWT key, and you're up.
+
+**File mode — zero database setup** ([`local-public-compose.yaml`](local-public-compose.yaml))
+
+```sh
+# edit Jwt__Key in the file first, then:
+docker compose -f local-public-compose.yaml up -d
 ```
 
-## Configuration
+Data is stored in a `./spooly-data/` folder next to the compose file. No database required.
 
-The CLI loads configuration from (in order):
+Then open [http://localhost:8080](http://localhost:8080).
 
-1. `Pricer.Cli\appsettings.json`
-2. `Pricer.Cli\appsettings.Development.json` (optional)
-3. Environment variables with prefix `PRICER_`
-4. User Secrets (optional)
-5. Command-line arguments
+**First launch:** the app redirects you to `/onboarding` to create your administrator account. Once created, open registration is permanently disabled — additional users are created by the administrator from the **Users** page.
 
-### Data access mode
+---
 
-Data access is configured via the `DataAccess` section.
+## Setting up your workspace
 
-#### File (default)
+After logging in, a one-time setup takes about two minutes:
 
-Stores data in a local JSON file.
+1. **Add a printer** — go to **Printers**, click *Add*, enter the name, average power draw (watts), and hourly overhead rate.
+2. **Select it as active** — click *Select* on the printer row.
+3. **Add a filament spool** — go to **Materials**, click *Add spool*, choose the type (PLA, PETG, ABS, …), enter the total weight and purchase price.
+4. **Set your currency** — go to **Currencies**, add currencies if needed, then go to **Settings** to choose your operating currency.
 
-`Pricer.Cli\appsettings.json`:
+You're ready to record prints.
 
-```json
-{
-  "DataAccess": {
-    "Mode": "File"
-  }
-}
+---
+
+## Recording a print
+
+Click the **+** button in the bottom-right corner (or go to **Transactions → Record print**).
+
+Enter:
+- **Duration** (hours and minutes)
+- **Filament used** (grams — or use the estimator to convert from print weight)
+- **Material** (which spool to deduct from)
+
+Spooly calculates:
+- Material cost (filament price × grams used)
+- Electricity cost (wattage × duration × rate)
+- Printer wear (hourly overhead × duration)
+- **Total cost**
+
+The transaction is saved, filament stock is deducted, and the dashboard charts update.
+
+---
+
+## Deployment options
+
+Three ready-to-use configurations are included. Edit the JWT key (and SQL password where relevant) before deploying.
+
+### File mode — personal / homelab
+
+[`local-public-compose.yaml`](local-public-compose.yaml) — pulls the pre-built image, stores everything in `./spooly-data/`. No database needed.
+
+```sh
+docker compose -f local-public-compose.yaml up -d
 ```
 
-When running the CLI from `Pricer.Cli`, the data file is `Pricer.Cli\data.json`.
+### SQL Server — production
 
-#### MSSQL
+[`public-compose.yaml`](public-compose.yaml) — pulls the pre-built image, spins up an MSSQL container alongside it, and persists data in a named volume. Suitable for always-on installs.
 
-Uses EF Core + SQL Server.
-
-`Pricer.Cli\appsettings.json`:
-
-```json
-{
-  "DataAccess": {
-    "Mode": "Mssql"
-  },
-  "ConnectionStrings": {
-    "DefaultConnection": "Server=localhost;Database=Pricer;Trusted_Connection=True;TrustServerCertificate=True"
-  }
-}
+```sh
+docker compose -f public-compose.yaml up -d
 ```
 
-Notes:
+### Kubernetes
 
-- Connection string key must be `ConnectionStrings:DefaultConnection`.
-- When `Mode` is `Mssql`, the CLI applies any pending EF migrations automatically on startup.
+[`example-k8s.yaml`](example-k8s.yaml) — a full example manifest: `Secret`, `ConfigMap`, `Deployment`, `Service`, and `Ingress` (nginx). Assumes SQL Server is provisioned separately.
 
-##### Using User Secrets (recommended for local dev)
+```sh
+# 1. Create the image pull secret (if the registry is private)
+kubectl create secret docker-registry ghcr-pull-secret \
+  --namespace tools \
+  --docker-server=ghcr.io \
+  --docker-username=<GH_USERNAME> \
+  --docker-password=<GH_PAT>
 
-```pwsh
-cd .\Pricer.Cli
-
-dotnet user-secrets init
-
-dotnet user-secrets set "DataAccess:Mode" "Mssql"
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost;Database=Pricer;Trusted_Connection=True;TrustServerCertificate=True"
+# 2. Fill in connection strings and JWT key in example-k8s.yaml, then apply
+kubectl apply -f example-k8s.yaml
 ```
 
-### Environment variables
+### Data storage
 
-The CLI uses the prefix `PRICER_`. Use `__` to represent `:` in nested keys:
+Spooly supports two backends and migrates automatically when you switch.
 
-- `PRICER_DataAccess__Mode=Mssql`
-- `PRICER_ConnectionStrings__DefaultConnection=...`
+| Mode | Best for |
+|------|----------|
+| **File** (default) | Personal use, zero setup — data lives in `data.json` + `security.db` |
+| **SQL Server** | Teams and production installs — set `DataAccess__Mode=Mssql` and a connection string |
 
-## Migrating between data providers
+---
 
-The CLI detects a backend switch on startup and migrates automatically. No manual steps are needed.
+## Running without Docker
 
-### File → SQL Server
+Requires .NET 10 SDK and Node.js 22. See [WEB-DEVELOPER.md](WEB-DEVELOPER.md) for full instructions.
 
-1. Switch `DataAccess:Mode` to `Mssql` and set `ConnectionStrings:DefaultConnection`.
-2. Start the CLI.
+---
 
-On startup the CLI merges all data from `data.json` into the database (entities already present by ID are skipped, settings are merged field-by-field with the database taking priority), then archives the file as `data.json.bak`.
+## License
 
-### SQL Server → File
+AGPL-3.0
 
-1. Switch `DataAccess:Mode` to `File` (keep the connection string in config or remove it later).
-2. Delete or empty `data.json` if it exists.
-3. Start the CLI.
-
-If the file is empty or missing and a `ConnectionStrings:DefaultConnection` value is configured, the CLI pulls all data from the database into `data.json`. If the database cannot be reached the CLI starts normally with an empty file and logs a warning.
+See [LICENSE](LICENSE) for the full text.

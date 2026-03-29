@@ -1,0 +1,142 @@
+# ── Image pull secret for GitHub Container Registry ────────────────────────────
+# Before applying, create this secret:
+
+  # kubectl create secret docker-registry ghcr-pull-secret --namespace tools --docker-server=ghcr.io --docker-username=<GH_Username> --docker-password=<GH_Personal_Access_Token> --docker-email=<Your_Email>
+#
+# ── App secrets (fill in before applying) ──────────────────────────────────────
+apiVersion: v1
+kind: Secret
+metadata:
+  name: printprice-secret
+  namespace: tools
+type: Opaque
+stringData:
+  # MSSQL connection strings
+  # Use one DefaultConnection for both app data + identity,
+  # or split them with SecurityConnection for identity.
+  DefaultConnection: "Server=<your-sql-server>;Database=<your-database>;User Id=<your-username>;Password=<your-password>;"
+  SecurityConnection: "Server=<your-sql-server>;Database=<your-database>;User Id=<your-username>;Password=<your-password>;"
+  # JWT signing key — use a long random string (32+ chars)
+  JwtKey: "<your-super-secret-key-min-32-characters-long>"
+
+---
+# ── ConfigMap for non-secret config ────────────────────────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: printprice-config
+  namespace: tools
+data:
+  DataAccess__Mode: "Mssql"
+  Jwt__Issuer: "PL.Spooly"
+  Jwt__Audience: "PL.Spooly"
+  Jwt__ExpirationHours: "24"
+  ASPNETCORE_ENVIRONMENT: "Production"
+
+---
+# ── Deployment ──────────────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: printprice
+  namespace: tools
+  labels:
+    app: printprice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: printprice
+  template:
+    metadata:
+      labels:
+        app: printprice
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      containers:
+        - name: printprice
+          image: ghcr.io/p-liubchenko/pl.spooly:latest
+          imagePullPolicy: Always
+          resources:
+            limits:
+              cpu: "1000m"
+              memory: "256Mi"
+            requests:
+              cpu: "50m"
+              memory: "128Mi"
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: printprice-config
+          env:
+            - name: ConnectionStrings__DefaultConnection
+              valueFrom:
+                secretKeyRef:
+                  name: printprice-secret
+                  key: DefaultConnection
+            - name: ConnectionStrings__SecurityConnection
+              valueFrom:
+                secretKeyRef:
+                  name: printprice-secret
+                  key: SecurityConnection
+            - name: Jwt__Key
+              valueFrom:
+                secretKeyRef:
+                  name: printprice-secret
+                  key: JwtKey
+          readinessProbe:
+            httpGet:
+              path: /api/auth/setup-required
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/auth/setup-required
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 30
+
+---
+# ── Service ────────────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: printprice
+  namespace: tools
+  annotations:
+    metallb.universe.tf/allow-shared-ip: "tools"
+spec:
+  type: LoadBalancer
+  selector:
+    app: printprice
+  ports:
+    - port: 80
+      targetPort: 8080
+
+---
+# ── Ingress ────────────────────────────────────────────────────────────────────
+# Assumes nginx ingress controller. If using Traefik, swap the annotation:
+#   traefik.ingress.kubernetes.io/router.entrypoints: web
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: printprice
+  namespace: tools
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: print.home.lan
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: printprice
+                port:
+                  number: 80
